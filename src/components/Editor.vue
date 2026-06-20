@@ -26,6 +26,7 @@ import {
 } from "@vue-flow/core"
 import { computed, onBeforeUnmount, onMounted, ref, useTemplateRef } from "vue"
 import { useAutosave } from "@/composables/useAutosave"
+import { usePlayback } from "@/composables/usePlayback"
 import { parseModel, serializeModel } from "@/model/io"
 import { project } from "@/model/projection"
 import { type Sample, SAMPLES } from "@/model/samples"
@@ -53,6 +54,10 @@ const edges = computed(() => graph.value.edges)
 // The simulation results panel (phase 2). Toggled from the header; the panel runs
 // the Model and recomputes reactively while open.
 const showResults = ref(false)
+
+// The playback clock that advances the playhead while a run is playing (mounted
+// once here; the simulation store holds the state it drives).
+usePlayback()
 
 // Explicit shared id: useVueFlow() runs here in the parent setup, before
 // <VueFlow> mounts. Pinning both to the same id guarantees they resolve to one

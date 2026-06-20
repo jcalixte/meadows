@@ -8,17 +8,27 @@
  * It reads the source-of-truth Model straight from the store and recomputes
  * reactively, so editing a rule and reopening re-runs. When the Model is not yet
  * sim-ready, it shows what is missing instead of a plot — the gap list doubles as
- * a checklist for bringing a diagram to life. No charting dependency: the plot is
- * a hand-built SVG (the same lean-substrate choice as the rest of the editor).
+ * a checklist for bringing a diagram to life. The plot itself is a uPlot canvas
+ * (see SimChart) — a small, fast time-series library that earns its keep with a
+ * real time axis and hover-to-read values the hand-built SVG couldn't give.
  */
-import { computed } from "vue"
-import { checkSimReady, simulate } from "@/model/simulation"
+import type uPlot from "uplot"
+import { computed, onBeforeUnmount, onMounted } from "vue"
+import SimChart from "./SimChart.vue"
+import { checkSimReady } from "@/model/simulation"
 import { DEFAULT_SIM_SPEC, type SimSpec, type StockNode } from "@/model/types"
 import { useModelStore } from "@/store/model"
+import { useSimulationStore } from "@/store/simulation"
 
 defineEmits<{ close: [] }>()
 
 const store = useModelStore()
+const sim = useSimulationStore()
+
+// While the panel is open the canvas shows live values; closing it returns the
+// canvas to a plain diagram.
+onMounted(() => sim.enable())
+onBeforeUnmount(() => sim.disable())
 
 const problems = computed(() => checkSimReady(store.model))
 
@@ -34,48 +44,18 @@ function onSpec(key: keyof SimSpec, event: Event): void {
 /** Distinct, legible track colours; cycled if a Model has more Stocks than these. */
 const COLORS = ["#2563eb", "#dc2626", "#16a34a", "#d97706", "#7c3aed", "#0891b2"]
 
-// SVG canvas in its own coordinate space; it stretches to the panel width, and
-// non-scaling strokes keep lines crisp under that non-uniform scale.
-const W = 600
-const H = 200
-const PAD = 12
-
+// Stocks only — the system's memory, and so the trajectories worth watching. The
+// run comes from the simulation store, so the chart and the canvas share one index.
 const chart = computed(() => {
-  if (problems.value.length > 0) return null
-  const run = simulate(store.model)
+  const run = sim.run
+  if (!run) return null
   const stocks = store.model.nodes.filter((n): n is StockNode => n.kind === "stock")
-  const all = stocks.flatMap((s) => run.series.get(s.id) ?? [])
-  if (all.length === 0 || run.times.length < 2) return null
+  if (stocks.length === 0 || run.times.length < 2) return null
 
-  let min = Math.min(...all)
-  let max = Math.max(...all)
-  if (min === max) {
-    // A flat trajectory: pad so the line lands mid-panel instead of on an edge.
-    min -= 1
-    max += 1
-  }
-  const n = run.times.length
-  const x = (i: number) => PAD + (i / (n - 1)) * (W - 2 * PAD)
-  const y = (v: number) => PAD + (1 - (v - min) / (max - min)) * (H - 2 * PAD)
-
-  const lines = stocks.map((s, i) => {
-    const values = run.series.get(s.id) ?? []
-    return {
-      id: s.id,
-      name: s.name,
-      color: COLORS[i % COLORS.length],
-      points: values.map((v, j) => `${x(j).toFixed(1)},${y(v).toFixed(1)}`).join(" "),
-      last: values[values.length - 1] ?? 0,
-    }
-  })
-
-  return { lines, min, max, t0: run.times[0], t1: run.times[n - 1], diverged: run.diverged }
+  const data = [run.times, ...stocks.map((s) => run.series.get(s.id) ?? [])] as uPlot.AlignedData
+  const series = stocks.map((s, i) => ({ label: s.name, stroke: COLORS[i % COLORS.length] }))
+  return { data, series, diverged: run.diverged }
 })
-
-/** Compact numbers for axis ticks and the legend (e.g. 7039.99 → "7040"). */
-function fmt(value: number): string {
-  return Math.abs(value) >= 100 ? value.toFixed(0) : value.toFixed(2)
-}
 </script>
 
 <template>
@@ -132,38 +112,33 @@ function fmt(value: number): string {
       smaller factor, or a Balancing loop to rein it in.
     </p>
 
-    <!-- Sim-ready: the plot, with a legend of final values. -->
-    <div v-if="chart" class="mt-2 flex items-stretch gap-3">
-      <svg
-        :viewBox="`0 0 ${W} ${H}`"
-        preserveAspectRatio="none"
-        class="h-40 flex-1 rounded-md bg-base-200/40"
-        role="img"
-        aria-label="Stock values over time"
-      >
-        <text :x="PAD" :y="PAD" class="fill-base-content/40 text-[10px]">{{ fmt(chart.max) }}</text>
-        <text :x="PAD" :y="H - PAD / 2" class="fill-base-content/40 text-[10px]">
-          {{ fmt(chart.min) }}
-        </text>
-        <polyline
-          v-for="line in chart.lines"
-          :key="line.id"
-          :points="line.points"
-          fill="none"
-          :stroke="line.color"
-          stroke-width="2"
-          stroke-linejoin="round"
-          vector-effect="non-scaling-stroke"
+    <!-- Sim-ready: the plot, plus a transport that drives the playhead. Hover a
+         point to read values; press play to watch the canvas animate in step. -->
+    <template v-if="chart">
+      <SimChart class="mt-2" :data="chart.data" :series="chart.series" :marker="sim.currentTime" />
+      <div class="mt-2 flex items-center gap-2">
+        <button
+          type="button"
+          class="btn btn-primary btn-xs w-8"
+          :aria-label="sim.playing ? 'Pause' : 'Play'"
+          @click="sim.toggle()"
+        >
+          {{ sim.playing ? "❚❚" : "▶" }}
+        </button>
+        <input
+          type="range"
+          class="range range-xs flex-1"
+          min="0"
+          :max="Math.max(0, sim.frameCount - 1)"
+          :value="sim.playhead"
+          aria-label="Playhead"
+          @input="sim.seek(Number(($event.target as HTMLInputElement).value))"
         />
-      </svg>
-      <ul class="flex w-44 flex-col gap-1 self-center text-xs">
-        <li v-for="line in chart.lines" :key="line.id" class="flex items-center gap-2">
-          <span class="size-2.5 shrink-0 rounded-full" :style="{ backgroundColor: line.color }" />
-          <span class="truncate">{{ line.name }}</span>
-          <span class="ml-auto font-mono text-base-content/60">{{ fmt(line.last) }}</span>
-        </li>
-      </ul>
-    </div>
+        <span class="w-14 text-right font-mono text-xs tabular-nums text-base-content/60">
+          t = {{ sim.currentTime ?? 0 }}
+        </span>
+      </div>
+    </template>
 
     <!-- Not sim-ready: what to fill in to bring it to life. -->
     <div v-else class="mt-2 text-sm">
