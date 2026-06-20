@@ -62,6 +62,12 @@ function onInitial(event: Event): void {
   if (Number.isFinite(n)) store.setInitialValue(el.id, n)
 }
 
+function onUnit(event: Event): void {
+  const el = element.value
+  if (el?.kind !== "stock") return
+  store.setUnit(el.id, (event.target as HTMLInputElement).value)
+}
+
 function onKind(event: Event): void {
   const el = element.value
   if (el?.kind !== "flow" && el?.kind !== "converter") return
@@ -97,17 +103,29 @@ const RULE_HINT: Record<Rule["kind"], string> = {
       <span class="text-xs text-base-content/50">{{ KIND_LABEL[element.kind] }}</span>
     </div>
 
-    <!-- Stock: the quantity it starts from. -->
-    <label v-if="element.kind === 'stock'" class="mt-2 block">
-      <span class="text-xs text-base-content/60">Initial value</span>
-      <input
-        type="number"
-        class="input input-sm input-bordered mt-1 w-full"
-        :value="element.initialValue ?? ''"
-        placeholder="—"
-        @change="onInitial"
-      />
-    </label>
+    <!-- Stock: the quantity it starts from, and its unit. -->
+    <template v-if="element.kind === 'stock'">
+      <label class="mt-2 block">
+        <span class="text-xs text-base-content/60">Initial value</span>
+        <input
+          type="number"
+          class="input input-sm input-bordered mt-1 w-full"
+          :value="element.initialValue ?? ''"
+          placeholder="—"
+          @change="onInitial"
+        />
+      </label>
+      <label class="mt-2 block">
+        <span class="text-xs text-base-content/60">Unit</span>
+        <input
+          type="text"
+          class="input input-sm input-bordered mt-1 w-full"
+          :value="element.unit ?? ''"
+          placeholder="e.g. °C, people, $"
+          @change="onUnit"
+        />
+      </label>
+    </template>
 
     <!-- Flow / Converter: pick a rule, then its number. -->
     <template v-else>

@@ -37,7 +37,7 @@ const fill = computed(() => sim.fill(props.id))
       class="pointer-events-none absolute inset-[2px] z-0 flex flex-col justify-end"
     >
       <div
-        class="rounded-b bg-primary/40 transition-[height]"
+        class="rounded-b bg-primary/60 transition-[height]"
         :style="{ height: fill * 100 + '%' }"
       />
     </div>
@@ -45,7 +45,8 @@ const fill = computed(() => sim.fill(props.id))
     <div class="relative z-10">
       <NodeLabel :node-id="props.id" :name="stock.name" />
       <div v-if="value !== null" class="mt-0.5 font-mono text-xs tabular-nums text-base-content/70">
-        {{ formatValue(value) }}
+        {{ formatValue(value)
+        }}<span v-if="stock.unit" class="ml-0.5 text-base-content/50">{{ stock.unit }}</span>
       </div>
     </div>
     <Handle :id="HANDLE_OUT" type="source" :position="Position.Right" />

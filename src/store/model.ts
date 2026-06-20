@@ -117,6 +117,17 @@ export const useModelStore = defineStore("model", () => {
     else node.initialValue = value
   }
 
+  /** Set (or clear) a Stock's display unit (e.g. "°C"). Empty clears it. No-op when unchanged. */
+  function setUnit(id: string, unit: string): void {
+    const node = findNode(id)
+    if (!node || node.kind !== "stock") return
+    const next = unit.trim() || undefined
+    if (node.unit === next) return
+    record()
+    if (next === undefined) delete node.unit
+    else node.unit = next
+  }
+
   /**
    * Set (or clear) how a Flow's rate or a Converter's value is computed (ADR-0004:
    * one of the fixed rules, never a formula). No-op when unchanged.
@@ -279,6 +290,7 @@ export const useModelStore = defineStore("model", () => {
     moveNode,
     renameNode,
     setInitialValue,
+    setUnit,
     setRule,
     setSimSpec,
     removeNode,

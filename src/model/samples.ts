@@ -77,6 +77,7 @@ function bathtub(): Model {
   const source = makeCloud({ x: -280, y: 0 })
   const water = makeStock({ x: 0, y: 0 }, "Water")
   water.initialValue = 20
+  water.unit = "L"
   const sink = makeCloud({ x: 280, y: 0 })
   const filling = makeFlow(
     midpoint(source.position, water.position),
@@ -108,6 +109,7 @@ function savings(): Model {
   const source = makeCloud({ x: -240, y: -80 })
   const balance = makeStock({ x: 120, y: 40 }, "Balance")
   balance.initialValue = 1000
+  balance.unit = "$"
   const interest = makeFlow(
     midpoint(source.position, balance.position),
     "interest",
@@ -133,6 +135,7 @@ function savings(): Model {
 function coffee(): Model {
   const coffee = makeStock({ x: -200, y: 0 }, "Coffee")
   coffee.initialValue = 90
+  coffee.unit = "°C"
   const sink = makeCloud({ x: 200, y: 0 })
   const cooling = makeFlow(midpoint(coffee.position, sink.position), "cooling", coffee.id, sink.id)
   // cooling = 0.1 × (Coffee − room): the `+` input is the level, the `−` the target.
@@ -169,6 +172,7 @@ function population(): Model {
   lifeExpectancy.rule = { kind: "constant", value: 70 }
   const people = makeStock({ x: 0, y: 0 }, "Population")
   people.initialValue = 100
+  people.unit = "people"
   const births = makeFlow({ x: -160, y: -160 }, "births", source.id, people.id)
   // births = fertility × Population (both `+` inputs): more people and higher
   // fertility, more births — the Reinforcing engine.
@@ -206,6 +210,7 @@ function limitsToGrowth(): Model {
   const source = makeCloud({ x: -280, y: 0 })
   const yeast = makeStock({ x: 40, y: 0 }, "Yeast")
   yeast.initialValue = 20
+  yeast.unit = "cells"
   const growth = makeFlow(midpoint(source.position, yeast.position), "growth", source.id, yeast.id)
   // growth = 30% of Yeast (its `+` input): the Reinforcing engine.
   growth.rule = { kind: "proportional", factor: 0.3 }
@@ -321,10 +326,13 @@ function predatorPrey(): Model {
 function epidemic(): Model {
   const susceptible = makeStock({ x: -280, y: 0 }, "Susceptible")
   susceptible.initialValue = 990
+  susceptible.unit = "people"
   const infected = makeStock({ x: 0, y: 0 }, "Infected")
   infected.initialValue = 10
+  infected.unit = "people"
   const recovered = makeStock({ x: 280, y: 0 }, "Recovered")
   recovered.initialValue = 0
+  recovered.unit = "people"
   const infection = makeFlow(
     midpoint(susceptible.position, infected.position),
     "infection",

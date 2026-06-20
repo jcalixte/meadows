@@ -89,6 +89,9 @@ function nodeError(value: unknown, index: number): string | null {
   if (kind === "stock" && value.initialValue !== undefined && !isFiniteNumber(value.initialValue)) {
     return `${at}.initialValue must be a finite number`
   }
+  if (kind === "stock" && value.unit !== undefined && typeof value.unit !== "string") {
+    return `${at}.unit must be a string`
+  }
   if (
     (kind === "flow" || kind === "converter") &&
     value.rule !== undefined &&

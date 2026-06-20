@@ -76,6 +76,8 @@ export interface StockNode extends BaseNode {
   name: string
   /** Initial accumulated quantity. Optional in the diagram phase; the simulator reads it. */
   initialValue?: number
+  /** Unit of the quantity, e.g. "°C", "people", "$" — shown beside the value (display only). */
+  unit?: string
 }
 
 /**
