@@ -37,7 +37,7 @@ const fill = computed(() => sim.fill(props.id))
       class="pointer-events-none absolute inset-[2px] z-0 flex flex-col justify-end"
     >
       <div
-        class="rounded-b bg-primary/15 transition-[height]"
+        class="rounded-b bg-primary/40 transition-[height]"
         :style="{ height: fill * 100 + '%' }"
       />
     </div>
