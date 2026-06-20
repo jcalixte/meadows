@@ -1,5 +1,7 @@
 # Feedback loops are detected from a polarity-annotated graph, not stored
 
+_Part of [meadows](../../README.md) · see [DESIGN.md](../../DESIGN.md)._
+
 A **Feedback Loop** in a **Model** is a cycle in the wiring (Stock → Information
 Link(s)/Flow → same Stock). We chose to **derive** loops by detecting cycles and
 classifying each as **Reinforcing** (even number of `−` polarities) or

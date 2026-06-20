@@ -1,5 +1,7 @@
 # A Flow is a node; Source/Sink clouds are materialised nodes
 
+_Part of [meadows](../../README.md) · see [DESIGN.md](../../DESIGN.md)._
+
 In the domain `Model`, a **Flow** is a *node* carrying `source` and `target`
 references (each to a Stock or Cloud), not an edge. The pipe you see is *rendered*
 from those references. The **Source/Sink** boundary is a **materialised Cloud

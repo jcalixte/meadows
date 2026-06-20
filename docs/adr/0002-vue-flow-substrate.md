@@ -1,5 +1,7 @@
 # Vue Flow is the editor substrate; the domain Model is the source of truth
 
+_Part of [meadows](../../README.md) · see [DESIGN.md](../../DESIGN.md)._
+
 The editor is built on **Vue Flow** (`@vue-flow/core`) for pan/zoom, node
 dragging, handles, edge-drawing, and selection, with Stocks/Flows/Converters/
 Clouds as custom Vue node components. We rejected hand-rolling an SVG editor (too

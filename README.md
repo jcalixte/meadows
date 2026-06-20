@@ -5,6 +5,21 @@ Inspired by Donella Meadows' *Thinking in Systems*.
 
 Deployed at https://meadows.apoena.dev
 
+## Design & docs
+
+- [CONTEXT.md](./CONTEXT.md) — the ubiquitous language: Stock, Flow, Converter,
+  Information Link, Polarity, and the Feedback Loops (Reinforcing / Balancing) the
+  wiring forms.
+- [DESIGN.md](./DESIGN.md) — goal-driven design (QFD): goals → functions →
+  components, the House of Quality, the performance budget, and recorded tradeoffs.
+- Architecture decisions (`docs/adr/`):
+  - [ADR-0001](./docs/adr/0001-detected-feedback-loops.md) — feedback loops are
+    detected from structure, not stored.
+  - [ADR-0002](./docs/adr/0002-vue-flow-substrate.md) — Vue Flow is the editor
+    substrate; the domain Model is the source of truth.
+  - [ADR-0003](./docs/adr/0003-flow-as-node-materialised-clouds.md) — a Flow is a
+    node; Source/Sink clouds are materialised nodes.
+
 ## Stack
 
 Vite + Vue 3 + TypeScript, Tailwind v4, DaisyUI. Lint/format via [oxc](https://oxc.rs)

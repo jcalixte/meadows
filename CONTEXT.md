@@ -5,6 +5,9 @@ models (stock-and-flow diagrams with feedback loops) in the spirit of Donella
 Meadows' *Thinking in Systems*. The diagram is the product now; numeric simulation
 is a planned later phase, so the language is chosen to be simulation-ready.
 
+Part of [meadows](./README.md); see [DESIGN.md](./DESIGN.md) for how these terms
+map to goals, functions, and components.
+
 ## Language
 
 **System**:

@@ -7,6 +7,7 @@ model, and persistence for building stock-and-flow **Models**. It relies on
 [ADR-0001](./docs/adr/0001-detected-feedback-loops.md) (loops detected from a
 polarity-annotated graph, not stored). "Simulation-ready" is a constraint here,
 not a goal: nothing in the data model should need a rewrite when simulation lands.
+See [README.md](./README.md) for the project overview and how to run it.
 
 Strength weights used in matrices: **9** strong, **3** medium, **1** weak, blank none.
 
