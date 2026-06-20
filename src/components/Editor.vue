@@ -25,7 +25,7 @@ import {
   VueFlow,
   type XYPosition,
 } from "@vue-flow/core"
-import { computed, nextTick, onBeforeUnmount, onMounted, useTemplateRef } from "vue"
+import { computed, onBeforeUnmount, onMounted, useTemplateRef } from "vue"
 import { useAutosave } from "@/composables/useAutosave"
 import { parseModel, serializeModel } from "@/model/io"
 import { project } from "@/model/projection"
@@ -57,6 +57,7 @@ const {
   onConnectStart,
   onConnectEnd,
   onError,
+  onNodesInitialized,
   getSelectedNodes,
   getSelectedEdges,
   viewport,
@@ -67,6 +68,18 @@ const {
 // Restore the last document on mount and persist every change (F7). Fit the
 // view once a restored model has re-projected so it lands framed.
 useAutosave({ onRestore: () => fitView({ padding: 0.2 }) })
+
+// Fit the view after a *load* (sample/import), once the freshly projected nodes
+// have been measured. Vue Flow measures node dimensions a frame after they mount,
+// so calling fitView straight after setModel fits to 0×0 boxes and the model
+// lands jammed in the top-left; onNodesInitialized fires post-measure, so framing
+// is correct. A one-shot flag keeps it scoped to loads (not every re-init).
+let fitAfterInit = false
+onNodesInitialized(() => {
+  if (!fitAfterInit) return
+  fitAfterInit = false
+  fitView({ padding: 0.2 })
+})
 
 onNodeDragStart(() => store.beginInteraction())
 onNodeDragStop(({ nodes: dragged }) => {
@@ -175,15 +188,14 @@ function onDragOver(event: DragEvent): void {
  * stay frictionless on the empty starting canvas. Fit the view once the
  * projection has re-derived so the loaded model lands framed.
  */
-async function loadSample(sample: Sample): Promise<void> {
+function loadSample(sample: Sample): void {
   if (store.nodeCount > 0 && !window.confirm(`Replace the current model with “${sample.title}”?`)) {
     return
   }
+  fitAfterInit = true
   store.setModel(sample.build())
   // Close the DaisyUI dropdown (it stays open while the trigger keeps focus).
   ;(document.activeElement as HTMLElement | null)?.blur()
-  await nextTick()
-  fitView({ padding: 0.2 })
 }
 
 const fileInput = useTemplateRef<HTMLInputElement>("fileInput")
@@ -229,9 +241,8 @@ async function onImportFile(event: Event): Promise<void> {
   ) {
     return
   }
+  fitAfterInit = true
   store.setModel(result.model)
-  await nextTick()
-  fitView({ padding: 0.2 })
 }
 
 function isTextEntry(target: EventTarget | null): boolean {
