@@ -61,6 +61,17 @@ export const useSimulationStore = defineStore("simulation", () => {
     if (playhead.value > n - 1) playhead.value = Math.max(0, n - 1)
   })
 
+  // Loading a different document (sample / import / new) restarts playback from the
+  // top. Editing the current one keeps the same id, so the playhead stays put — and
+  // undo/redo restore snapshots in place (same id), so they don't jump it either.
+  watch(
+    () => modelStore.model.id,
+    () => {
+      playing.value = false
+      playhead.value = 0
+    },
+  )
+
   /** A node's value at the current playhead, or null when there's nothing to show. */
   function valueAt(id: string): number | null {
     if (!active.value) return null
