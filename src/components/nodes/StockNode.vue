@@ -44,11 +44,17 @@ const fill = computed(() => sim.fill(props.id))
     <Handle :id="HANDLE_IN" type="target" :position="Position.Left" />
     <div class="relative z-10">
       <NodeLabel :node-id="props.id" :name="stock.name" />
-      <div v-if="value !== null" class="mt-0.5 font-mono text-xs tabular-nums text-base-content/70">
-        {{ formatValue(value)
-        }}<span v-if="stock.unit" class="ml-0.5 text-base-content/50">{{ stock.unit }}</span>
-      </div>
     </div>
     <Handle :id="HANDLE_OUT" type="source" :position="Position.Right" />
+    <!-- Live value sits *below* the box as an out-of-flow overlay, so the box keeps
+         its exact size and the handles — with the pipes and links on them — never
+         shift when a run is engaged. -->
+    <div
+      v-if="value !== null"
+      class="pointer-events-none absolute inset-x-0 top-full mt-1 whitespace-nowrap text-center font-mono text-xs tabular-nums text-base-content/70"
+    >
+      {{ formatValue(value)
+      }}<span v-if="stock.unit" class="ml-0.5 text-base-content/50">{{ stock.unit }}</span>
+    </div>
   </div>
 </template>
