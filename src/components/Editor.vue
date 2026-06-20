@@ -20,7 +20,6 @@ import {
   ErrorCode,
   isErrorOfType,
   type OnConnectStartParams,
-  Panel,
   useVueFlow,
   VueFlow,
   type XYPosition,
@@ -341,10 +340,6 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onKeydown))
         <Background :gap="20" pattern-color="#d1d5db" />
         <Controls position="bottom-left" :show-interactive="false" />
 
-        <Panel position="top-left">
-          <Palette @add="addNode" />
-        </Panel>
-
         <template #node-stock="nodeProps">
           <StockNode v-bind="nodeProps" />
         </template>
@@ -363,6 +358,10 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onKeydown))
         </template>
       </VueFlow>
 
+      <!-- Chrome lives at this level, above the badge overlay: Vue Flow's pane is a
+           z-index:0 stacking context, so a Panel inside it would be painted under
+           the screen-space R/B badges (which sit on the canvas, over loop centres). -->
+      <Palette class="absolute top-3 left-3 z-20" @add="addNode" />
       <LoopOverlay />
       <GlossPanel />
     </div>
