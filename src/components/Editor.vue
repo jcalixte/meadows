@@ -25,7 +25,9 @@ import {
   VueFlow,
   type XYPosition,
 } from "@vue-flow/core"
-import { computed, nextTick, onBeforeUnmount, onMounted } from "vue"
+import { computed, nextTick, onBeforeUnmount, onMounted, useTemplateRef } from "vue"
+import { useAutosave } from "@/composables/useAutosave"
+import { parseModel, serializeModel } from "@/model/io"
 import { project } from "@/model/projection"
 import { type Sample, SAMPLES } from "@/model/samples"
 import { canConnect } from "@/model/validation"
@@ -61,6 +63,10 @@ const {
   vueFlowRef,
   fitView,
 } = useVueFlow("meadows")
+
+// Restore the last document on mount and persist every change (F7). Fit the
+// view once a restored model has re-projected so it lands framed.
+useAutosave({ onRestore: () => fitView({ padding: 0.2 }) })
 
 onNodeDragStart(() => store.beginInteraction())
 onNodeDragStop(({ nodes: dragged }) => {
@@ -180,6 +186,54 @@ async function loadSample(sample: Sample): Promise<void> {
   fitView({ padding: 0.2 })
 }
 
+const fileInput = useTemplateRef<HTMLInputElement>("fileInput")
+
+/** A filesystem-safe stem from the model name, e.g. "Coffee cooling" → "coffee-cooling". */
+function fileStem(name: string): string {
+  const slug = name
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+  return slug || "model"
+}
+
+/** Export the current Model as versioned JSON download (F8). */
+function exportModel(): void {
+  const blob = new Blob([serializeModel(store.model)], { type: "application/json" })
+  const url = URL.createObjectURL(blob)
+  const anchor = document.createElement("a")
+  anchor.href = url
+  anchor.download = `${fileStem(store.model.name)}.json`
+  anchor.click()
+  URL.revokeObjectURL(url)
+}
+
+/** Import a Model from a JSON file: validate, confirm a destructive replace, load (F8). */
+async function onImportFile(event: Event): Promise<void> {
+  const input = event.target as HTMLInputElement
+  const file = input.files?.[0]
+  // Reset first so picking the same file again still fires `change`.
+  input.value = ""
+  if (!file) return
+
+  const result = parseModel(await file.text())
+  if (!result.ok) {
+    window.alert(`Couldn't import “${file.name}”: ${result.error}`)
+    return
+  }
+  // Importing replaces the document and clears undo (T6 / F10×F7), so guard real work.
+  if (
+    store.nodeCount > 0 &&
+    !window.confirm(`Replace the current model with “${result.model.name}”?`)
+  ) {
+    return
+  }
+  store.setModel(result.model)
+  await nextTick()
+  fitView({ padding: 0.2 })
+}
+
 function isTextEntry(target: EventTarget | null): boolean {
   const el = target as HTMLElement | null
   return el?.tagName === "INPUT" || el?.tagName === "TEXTAREA" || el?.isContentEditable === true
@@ -242,6 +296,15 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onKeydown))
             </li>
           </ul>
         </div>
+        <button class="btn btn-ghost btn-sm" @click="exportModel">Export</button>
+        <button class="btn btn-ghost btn-sm" @click="fileInput?.click()">Import</button>
+        <input
+          ref="fileInput"
+          type="file"
+          accept="application/json,.json"
+          class="hidden"
+          @change="onImportFile"
+        />
         <button class="btn btn-ghost btn-sm" :disabled="!store.canUndo" @click="store.undo()">
           Undo
         </button>
