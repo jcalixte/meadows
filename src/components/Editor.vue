@@ -385,6 +385,8 @@ onBeforeUnmount(() => {
         :connection-radius="30"
         :min-zoom="0.2"
         :max-zoom="4"
+        :snap-to-grid="true"
+        :snap-grid="[20, 20]"
         class="size-full"
       >
         <Background :gap="20" pattern-color="#d1d5db" />
