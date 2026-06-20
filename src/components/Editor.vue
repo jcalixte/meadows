@@ -33,6 +33,7 @@ import { type Sample, SAMPLES } from "@/model/samples"
 import { canConnect } from "@/model/validation"
 import { useModelStore } from "@/store/model"
 import { NODE_DND_MIME, type PlaceableKind } from "./palette-dnd"
+import GlossPanel from "./GlossPanel.vue"
 import LoopOverlay from "./LoopOverlay.vue"
 import Palette from "./Palette.vue"
 import InfoLinkEdge from "./edges/InfoLinkEdge.vue"
@@ -363,6 +364,7 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onKeydown))
       </VueFlow>
 
       <LoopOverlay />
+      <GlossPanel />
     </div>
   </div>
 </template>
