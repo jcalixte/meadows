@@ -15,9 +15,9 @@
  * Beyond that primer, three classic models go a step further — each adds one
  * structure the first four never show, so they read as a second tier:
  *
- *   5. Limits to growth  — two loops (R and B) fighting over a single Flow, plus a
- *                          constant Converter (carrying capacity) that feeds a loop
- *                          without being part of it.
+ *   5. Limits to growth  — a Reinforcing inflow and a Balancing outflow on one
+ *                          Stock, with a Converter (crowding) relaying the density
+ *                          that brakes growth: the S-curve.
  *   6. Predator and prey — two coupled Stocks whose interlocking loops oscillate.
  *   7. Epidemic          — a chain of Stocks joined by Stock→Stock Flows: no clouds.
  *
@@ -192,30 +192,41 @@ function population(): Model {
 }
 
 /**
- * Limits to growth — the S-curve, and the first model where two loops fight over
- * one Flow. Yeast multiplies the more there is of it (Yeast → [+] → growth: a
- * Reinforcing loop), but the fuller the vat the more crowding holds growth back
- * (Yeast → [+] → crowding → [−] → growth: a Balancing loop). Carrying capacity is
- * a *constant* Converter — no inputs — that sets how soon crowding bites; it feeds
- * the balancing loop without sitting on any cycle.
+ * Limits to growth — the S-curve, where a Reinforcing engine meets a Balancing
+ * brake. Yeast multiplies the more there is of it (Yeast → [+] → growth: a
+ * Reinforcing inflow), but crowding rises with the population (Yeast → [+] →
+ * crowding) and drives a die-off that grows with the *square* of the Yeast
+ * (Yeast, crowding → [+] → die-off → drains Yeast: a Balancing outflow). Growth
+ * wins early, the die-off wins late, so Yeast settles where they balance (≈1000)
+ * — the classic sigmoid, with *both* loops visible to the detector. (A named
+ * "carrying capacity" would want a divide rule we don't have yet; here the ceiling
+ * falls out of the growth and die-off rates.)
  */
 function limitsToGrowth(): Model {
   const source = makeCloud({ x: -280, y: 0 })
   const yeast = makeStock({ x: 40, y: 0 }, "Yeast")
+  yeast.initialValue = 20
   const growth = makeFlow(midpoint(source.position, yeast.position), "growth", source.id, yeast.id)
-  // crowding rides above the pipe; carrying capacity stacks above the Source on the
-  // left, so the `capacity → crowding` link is a clean horizontal hop along the top.
-  const capacity = makeConverter({ x: -280, y: -160 }, "carrying capacity")
-  const crowding = makeConverter({ x: -40, y: -160 }, "crowding")
+  // growth = 30% of Yeast (its `+` input): the Reinforcing engine.
+  growth.rule = { kind: "proportional", factor: 0.3 }
+  const sink = makeCloud({ x: 360, y: 0 })
+  const dieOff = makeFlow(midpoint(yeast.position, sink.position), "die-off", yeast.id, sink.id)
+  // die-off = factor × Yeast × crowding. With crowding ∝ Yeast it scales as Yeast²,
+  // so the Balancing drain overtakes the linear growth and Yeast plateaus.
+  dieOff.rule = { kind: "proportional", factor: 0.0003 }
+  // crowding ≈ the population density (proportional to Yeast), what drives the die-off.
+  const crowding = makeConverter({ x: 200, y: -160 }, "crowding")
+  crowding.rule = { kind: "proportional", factor: 1 }
   return model(
     "Limits to growth",
-    [source, yeast, growth, crowding, capacity],
+    [source, yeast, growth, sink, dieOff, crowding],
     [
       link(yeast, growth, "+"),
       link(yeast, crowding, "+"),
-      link(crowding, growth, "-"),
-      link(capacity, crowding, "-"),
+      link(yeast, dieOff, "+"),
+      link(crowding, dieOff, "+"),
     ],
+    { start: 0, stop: 40, dt: 1 },
   )
 }
 
