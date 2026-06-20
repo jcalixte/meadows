@@ -43,6 +43,25 @@ let observer: ResizeObserver | undefined
 /** Signature of the current plot's tracks; a change means the shape changed. */
 let builtSig = ""
 
+// Playhead as a DOM overlay (CSS px), not a canvas line: a moving line drawn by
+// redrawing the whole uPlot canvas every frame flickers, so the line slides over
+// the canvas instead and the canvas is only redrawn when the data changes.
+const markerX = ref<number | null>(null)
+const markerTop = ref(0)
+const markerHeight = ref(0)
+
+function syncMarker(): void {
+  if (!plot || props.marker === null) {
+    markerX.value = null
+    return
+  }
+  // bbox is in device pixels; the overlay is laid out in CSS pixels.
+  const ratio = window.devicePixelRatio || 1
+  markerX.value = plot.valToPos(props.marker, "x")
+  markerTop.value = plot.bbox.top / ratio
+  markerHeight.value = plot.bbox.height / ratio
+}
+
 /** Compact axis/legend numbers (7039.99 → "7040", 0.42 → "0.42", idle → "--"). */
 function fmt(value: number | null): string {
   if (value === null) return "--"
@@ -76,26 +95,6 @@ function options(width: number): uPlot.Options {
     height: props.height,
     cursor: { y: false },
     scales: { x: { time: false } },
-    // Playhead: a vertical line at the current simulation time, so the chart and
-    // the animating canvas read off the same instant. Drawn after the series, and
-    // redrawn whenever `marker` changes (see the watch below).
-    hooks: {
-      draw: [
-        (u: uPlot): void => {
-          if (props.marker === null) return
-          const x = Math.round(u.valToPos(props.marker, "x", true))
-          const { ctx } = u
-          ctx.save()
-          ctx.beginPath()
-          ctx.lineWidth = 1
-          ctx.strokeStyle = themeColor("--color-primary", "#2563eb")
-          ctx.moveTo(x, u.bbox.top)
-          ctx.lineTo(x, u.bbox.top + u.bbox.height)
-          ctx.stroke()
-          ctx.restore()
-        },
-      ],
-    },
     series: [
       {},
       ...props.series.map(
@@ -123,17 +122,25 @@ function build(): void {
 function render(): void {
   if (!plot || trackSig() !== builtSig) build()
   else plot.setData(props.data)
+  syncMarker() // the plot area may have shifted; keep the overlay aligned
 }
 
 onMounted(() => {
   build()
   observer = new ResizeObserver(() => {
-    if (plot && root.value) plot.setSize({ width: root.value.clientWidth, height: props.height })
+    if (plot && root.value) {
+      plot.setSize({ width: root.value.clientWidth, height: props.height })
+      syncMarker()
+    }
   })
   if (root.value) observer.observe(root.value)
+  syncMarker()
   // The canvas paints before the web font loads and won't repaint on its own, so
   // axis labels would stick to the fallback. Redraw once the font is ready.
-  document.fonts?.ready.then(() => plot?.redraw())
+  document.fonts?.ready.then(() => {
+    plot?.redraw()
+    syncMarker()
+  })
 })
 
 onBeforeUnmount(() => {
@@ -142,15 +149,18 @@ onBeforeUnmount(() => {
 })
 
 watch(() => props.data, render)
-// The playhead moves without the data changing, so nudge a redraw on its own.
-watch(
-  () => props.marker,
-  () => plot?.redraw(),
-)
+// The playhead just slides the overlay — no canvas redraw, so playback stays smooth.
+watch(() => props.marker, syncMarker)
 </script>
 
 <template>
-  <div ref="root" class="w-full" />
+  <div ref="root" class="relative w-full">
+    <div
+      v-if="markerX !== null"
+      class="pointer-events-none absolute w-px bg-primary"
+      :style="{ left: `${markerX}px`, top: `${markerTop}px`, height: `${markerHeight}px` }"
+    />
+  </div>
 </template>
 
 <style scoped>
