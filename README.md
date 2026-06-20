@@ -1,7 +1,7 @@
 # meadows
 
 A canvas for thinking in systems — stocks, flows, converters, and feedback loops.
-Inspired by Donella Meadows' *Thinking in Systems*.
+Inspired by Donella Meadows' _Thinking in Systems_.
 
 Deployed at https://meadows.apoena.dev
 

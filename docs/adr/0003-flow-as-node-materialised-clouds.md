@@ -2,8 +2,8 @@
 
 _Part of [meadows](../../README.md) · see [DESIGN.md](../../DESIGN.md)._
 
-In the domain `Model`, a **Flow** is a *node* carrying `source` and `target`
-references (each to a Stock or Cloud), not an edge. The pipe you see is *rendered*
+In the domain `Model`, a **Flow** is a _node_ carrying `source` and `target`
+references (each to a Stock or Cloud), not an edge. The pipe you see is _rendered_
 from those references. The **Source/Sink** boundary is a **materialised Cloud
 node**, so every Flow connects node→node uniformly — no `null` ends.
 

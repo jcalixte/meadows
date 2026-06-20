@@ -6,7 +6,7 @@ A **Feedback Loop** in a **Model** is a cycle in the wiring (Stock → Informati
 Link(s)/Flow → same Stock). We chose to **derive** loops by detecting cycles and
 classifying each as **Reinforcing** (even number of `−` polarities) or
 **Balancing** (odd), rather than storing them as first-class objects the user
-hand-labels. This makes loops *discovered insight* that can never disagree with
+hand-labels. This makes loops _discovered insight_ that can never disagree with
 the actual structure — the point of a systems-thinking tool.
 
 ## Considered Options

@@ -256,10 +256,10 @@ symbols: ● strong (9) · ◐ medium (3) · △ weak (1). Roof: `++`/`+` reinfo
 }
 
 \begin{document}
-% --- meadows: 3 goals (WHATs) x 9 functions (HOWs); no competitor zone;
+% --- meadows: 4 goals (WHATs) x 10 functions (HOWs); no competitor zone;
 %     basement = Target / Importance Sigma / Relative %. ---
-\def\qfdNW{3}
-\def\qfdNH{9}
+\def\qfdNW{4}
+\def\qfdNH{10}
 \def\qfdWhatW{4.2}
 \def\qfdBasementN{3}
 \def\qfdWhatsTitle{Goals (WHATs)}
@@ -270,23 +270,26 @@ symbols: ● strong (9) · ◐ medium (3) · △ weak (1). Roof: `++`/`+` reinfo
   \pgfmathsetmacro{\qfdWhatTextW}{\qfdWhatW - 0.2}
   \foreach \r/\t in {1/{G1 Build with near-zero friction},
                      2/{G2 Feedback surfaces as live insight},
-                     3/{G3 Models safe \& portable}}
+                     3/{G3 Models safe \& portable},
+                     4/{G4 Learn the language by example}}
     \node[anchor=west, font=\scriptsize, text width=\qfdWhatTextW cm, align=left]
       at ({\qfdLeftEdge + 0.1}, {-\r + 0.5}) {\t};
-  \foreach \r/\imp in {1/9, 2/8, 3/7}
+  \foreach \r/\imp in {1/9, 2/8, 3/7, 4/4}
     \node[font=\scriptsize] at ({-\qfdImpW/2}, {-\r + 0.5}) {\imp};
 
   % --- HOWs (functions, rotated) ---
   \foreach \c/\t in {1/{F1 place node}, 2/{F2 connect},
                      3/{F3 smooth canvas}, 4/{F4 valid inline},
                      5/{F5 loops live}, 6/{F6 polarity},
-                     7/{F7 autosave}, 8/{F8 round-trip}, 9/{F9 undo/redo}}
+                     7/{F7 autosave}, 8/{F8 round-trip}, 9/{F9 undo/redo},
+                     10/{F10 samples}}
     \node[rotate=90, anchor=west, font=\scriptsize] at ({\c - 0.5}, 0.15) {\t};
 
   % --- Relation matrix (col c = function, row r = goal); strength S/M/W ---
-  \foreach \c/\r/\s in {1/1/S, 2/1/S, 3/1/S, 4/1/M, 5/1/W, 6/1/M, 7/1/W, 9/1/M,
+  \foreach \c/\r/\s in {1/1/S, 2/1/S, 3/1/S, 4/1/M, 5/1/W, 6/1/M, 7/1/W, 9/1/M, 10/1/W,
                         2/2/M, 3/2/W, 4/2/M, 5/2/S, 6/2/S, 9/2/W,
-                        4/3/W, 7/3/S, 8/3/S, 9/3/S}
+                        4/3/W, 7/3/S, 8/3/S, 9/3/S,
+                        5/4/M, 6/4/W, 10/4/S}
     \node[qfdrel/\s] at ({\c - 0.5}, {-\r + 0.5}) {};
 
   % --- Roof correlations (C-i-j, i<j); from DESIGN.md §5 ---
@@ -296,15 +299,16 @@ symbols: ● strong (9) · ◐ medium (3) · △ weak (1). Roof: `++`/`+` reinfo
   \node[font=\scriptsize] at (C-3-9) {$-$};      % F3 x F9 mild conflict
   \node[font=\scriptsize] at (C-4-5) {$+$};      % F4 o F5 mild reinforce
   \node[font=\scriptsize] at (C-5-6) {$+\!+$};   % F5 o F6 strong reinforce
+  \node[font=\scriptsize] at (C-7-10) {$-$};     % F7 x F10 conflict (load clears history)
 
   % --- Basement: Target / Importance Sigma / Relative %, + row labels ---
   \foreach \rr/\lbl in {0/{Target}, 1/{Imp.\ $\Sigma$}, 2/{Rel.\ \%}}
     \node[anchor=east, font=\scriptsize\itshape]
       at (-0.1, {-\qfdNW - 0.5 - \rr}) {\lbl};
   \foreach \c/\tgt/\sig/\rel in
-    {1/{1 gest.}/81/11, 2/{1 drag}/105/14, 3/{60 fps}/89/12,
-     4/{0 inv.}/58/8, 5/{$\le$16ms}/81/11, 6/{dflt $\pm$}/99/13,
-     7/{$\le$500ms}/72/10, 8/{id.}/63/8, 9/{$\ge$50}/98/13} {
+    {1/{1 gest.}/81/10, 2/{1 drag}/105/13, 3/{60 fps}/89/11,
+     4/{0 inv.}/58/7, 5/{$\le$16ms}/93/11, 6/{dflt $\pm$}/103/13,
+     7/{$\le$500ms}/72/9, 8/{id.}/63/8, 9/{$\ge$50}/98/12, 10/{1 load}/45/6} {
     \node[font=\scriptsize] at ({\c - 0.5}, {-\qfdNW - 0.5}) {\tgt};
     \node[font=\scriptsize] at ({\c - 0.5}, {-\qfdNW - 1.5}) {\sig};
     \node[font=\scriptsize\bfseries] at ({\c - 0.5}, {-\qfdNW - 2.5}) {\rel};
@@ -317,98 +321,113 @@ symbols: ● strong (9) · ◐ medium (3) · △ weak (1). Roof: `++`/`+` reinfo
 
 ## 1. Goals — the WHATs
 
-| ID  | Goal                                          | Weight | Source                          |
-|-----|-----------------------------------------------|:------:|---------------------------------|
-| G1  | Build a model with near-zero friction         |   9    | original request; CONTEXT.md    |
-| G2  | Feedback structure surfaces as insight (live) |   8    | original request; ADR-0001      |
-| G3  | Models are safe and portable                  |   7    | original request                |
+| ID  | Goal                                          | Weight | Source                       |
+| --- | --------------------------------------------- | :----: | ---------------------------- |
+| G1  | Build a model with near-zero friction         |   9    | original request; CONTEXT.md |
+| G2  | Feedback structure surfaces as insight (live) |   8    | original request; ADR-0001   |
+| G3  | Models are safe and portable                  |   7    | original request             |
+| G4  | Learn the language by example                 |   4    | README (Meadows spirit)      |
 
 ## 2. Functions — the HOWs
 
-| ID  | Function                                                              | Dir | Target (now)                         | Target (future)        |
-|-----|----------------------------------------------------------------------|:---:|--------------------------------------|------------------------|
-| F1  | Place a node in one gesture (palette → canvas, auto-named)            |  ↓  | 1 click/drag, 0 dialogs              | —                      |
-| F2  | Connect by direct manipulation (auto source/sink cloud on open end)   |  ↓  | 1 drag, 0 menus                      | —                      |
-| F3  | Render & manipulate the canvas smoothly                               |  ↑  | 60 fps pan/zoom/drag @ ≤150 elements | ≥300 elements          |
-| F4  | Enforce valid structure inline                                        |  →  | 0 invalid models persistable         | —                      |
-| F5  | Detect & classify loops live (R/B) on every structural change         |  ↓  | ≤16 ms recompute @ ≤150 elements     | ≤16 ms @ ≥300          |
-| F6  | Capture link polarity frictionlessly                                  |  ↓  | default on create, 1-click toggle    | —                      |
-| F7  | Autosave locally, continuously                                        |  →  | debounced ≤500 ms; survive reload    | —                      |
-| F8  | Round-trip Models as versioned JSON                                   |  →  | export→import identity; `version`    | schema migrations      |
-| F9  | Undo/redo every model change                                          |  ↑  | ≥50 steps, all structural ops        | —                      |
+| ID  | Function                                                            | Dir | Target (now)                         | Target (future)         |
+| --- | ------------------------------------------------------------------- | :-: | ------------------------------------ | ----------------------- |
+| F1  | Place a node in one gesture (palette → canvas, auto-named)          |  ↓  | 1 click/drag, 0 dialogs              | —                       |
+| F2  | Connect by direct manipulation (auto source/sink cloud on open end) |  ↓  | 1 drag, 0 menus                      | —                       |
+| F3  | Render & manipulate the canvas smoothly                             |  ↑  | 60 fps pan/zoom/drag @ ≤150 elements | ≥300 elements           |
+| F4  | Enforce valid structure inline                                      |  →  | 0 invalid models persistable         | —                       |
+| F5  | Detect & classify loops live (R/B) on every structural change       |  ↓  | ≤16 ms recompute @ ≤150 elements     | ≤16 ms @ ≥300           |
+| F6  | Capture link polarity frictionlessly                                |  ↓  | default on create, 1-click toggle    | —                       |
+| F7  | Autosave locally, continuously                                      |  →  | debounced ≤500 ms; survive reload    | —                       |
+| F8  | Round-trip Models as versioned JSON                                 |  →  | export→import identity; `version`    | schema migrations       |
+| F9  | Undo/redo every model change                                        |  ↑  | ≥50 steps, all structural ops        | —                       |
+| F10 | Load a curated sample on demand (covers the whole language)         |  →  | 1 click; set spans whole language    | more samples; shareable |
 
 ## 3. Cascade — Goals → Functions → How → Components
 
-- **G1** Build a model with near-zero friction  _W:9_
-  - **F1** Place a node in one gesture  _↓ 1 click/drag_
+- **G1** Build a model with near-zero friction _W:9_
+  - **F1** Place a node in one gesture _↓ 1 click/drag_
     - **How**: Vue Flow drag-from-palette → store action creates the node
       - **Component**: C1 Vue Flow canvas · C2 custom node components · C6 projection
-  - **F2** Connect by direct manipulation (auto cloud on open end)  _↓ 1 drag_
+  - **F2** Connect by direct manipulation (auto cloud on open end) _↓ 1 drag_
     - **How**: drag from a node handle; open end auto-spawns a Cloud
       - **Component**: C2 node handles · C3 edge components · C5 store actions · C7 structure guard
-  - **F3** Render & manipulate smoothly  _↑ 60 fps @ ≤150_
+  - **F3** Render & manipulate smoothly _↑ 60 fps @ ≤150_
     - **How**: Vue Flow viewport (GPU transforms); Model→VueFlow projection memoised
       - **Component**: C1 Vue Flow canvas · C6 projection
-  - **F9** Undo/redo  _↑ ≥50 steps_
+  - **F9** Undo/redo _↑ ≥50 steps_
     - **How**: ring buffer of deep-cloned Model snapshots in the store
       - **Component**: C5 model store (history)
-- **G2** Feedback structure surfaces as insight (live)  _W:8_
-  - **F5** Detect & classify loops live  _↓ ≤16 ms @ ≤150_
+- **G2** Feedback structure surfaces as insight (live) _W:8_
+  - **F5** Detect & classify loops live _↓ ≤16 ms @ ≤150_
     - **How**: derive directed graph → Tarjan SCC → capped Johnson → polarity product (R/B)
     - **How**: SCC-only — _rejected (loses per-loop insight), see T3_
       - **Component**: C8 loop engine · C11 loop overlay
-  - **F6** Capture link polarity frictionlessly  _↓ default + toggle_
+  - **F6** Capture link polarity frictionlessly _↓ default + toggle_
     - **How**: InfoLink defaults to `+` on create; 1-click `+/−` toggle on the edge badge
       - **Component**: C3 edge components · C5 store actions
-  - **F4** Enforce valid structure inline  _→ 0 invalid persistable_
-    - **How**: guard *guides* (disallow invalid handle targets) rather than erroring after
+  - **F4** Enforce valid structure inline _→ 0 invalid persistable_
+    - **How**: guard _guides_ (disallow invalid handle targets) rather than erroring after
       - **Component**: C7 structure guard · C4 domain types
-- **G3** Models are safe and portable  _W:7_
-  - **F7** Autosave locally, continuously  _→ ≤500 ms debounce_
+- **G3** Models are safe and portable _W:7_
+  - **F7** Autosave locally, continuously _→ ≤500 ms debounce_
     - **How**: store subscribes to Model changes → debounced `repository.save()`
       - **Component**: C5 store · C9 ModelRepository (IndexedDB/idb)
-  - **F8** Round-trip Models as versioned JSON  _→ lossless_
+  - **F8** Round-trip Models as versioned JSON _→ lossless_
     - **How**: serialise Model (`version` field) → download; import → validate → load
     - **How**: PouchDB/cloud sync — _deferred (needs a backend), see Tensions_
       - **Component**: C10 import/export · C4 domain types
   - **F9** (also serves G3 as a safety net) → C5 model store
+- **G4** Learn the language by example _W:4_
+  - **F10** Load a curated sample on demand _→ 1 click, set spans the language_
+    - **How**: ship example Models as pure data (the same factory constructors the
+      store uses); a header menu loads one via `store.setModel` + `fitView`
+    - **How**: interactive tutorial / guided tour — _rejected (a tutorial
+      framework to maintain; a readable, editable gallery teaches by example and
+      doubles as instant content), see T6_
+      - **Component**: C13 sample gallery · C5 store (`setModel`) · C1 canvas (`fitView`)
+  - **F5** (seeing loops classified R/B _is_ the lesson) → C8 loop engine · C11 overlay
+  - **F6** (visible polarity reinforces the lesson) → C3 edge components
 
 ## 4. House — Goals × Functions
 
 Cells: strength 9/3/1. Importance Σ = Σ(weight × strength).
 
-|          | F1 | F2 | F3 | F4 | F5 | F6 | F7 | F8 | F9 |
-|----------|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|
-| G1 (9)   | 9  | 9  | 9  | 3  | 1  | 3  | 1  |    | 3  |
-| G2 (8)   |    | 3  | 1  | 3  | 9  | 9  |    |    | 1  |
-| G3 (7)   |    |    |    | 1  |    |    | 9  | 9  | 9  |
-| **Σ**    | 81 | 105| 89 | 58 | 81 | 99 | 72 | 63 | 98 |
+|        | F1  | F2  | F3  | F4  | F5  | F6  | F7  | F8  | F9  | F10 |
+| ------ | :-: | :-: | :-: | :-: | :-: | :-: | :-: | :-: | :-: | :-: |
+| G1 (9) |  9  |  9  |  9  |  3  |  1  |  3  |  1  |     |  3  |  1  |
+| G2 (8) |     |  3  |  1  |  3  |  9  |  9  |     |     |  1  |     |
+| G3 (7) |     |     |     |  1  |     |     |  9  |  9  |  9  |     |
+| G4 (4) |     |     |     |     |  3  |  1  |     |     |     |  9  |
+| **Σ**  | 81  | 105 | 89  | 58  | 93  | 103 | 72  | 63  | 98  | 45  |
 
-**Top engineering priorities (from importance):** the matrix puts **F2 (connect, 105)**, **F6 (polarity, 99)** and **F9 (undo, 98)** above the headline detector **F5 (81)**. The lesson: loop insight is only as good as its *inputs* and *ergonomics* — getting wiring (F2) and polarity capture (F6) effortless matters as much as the detection itself, and a reliable safety net (F9) underwrites fearless building. F4 (58) is real but lowest-leverage — keep it lightweight (guide, don't nag).
+**Top engineering priorities (from importance):** the matrix still puts **F2 (connect, 105)**, **F6 (polarity, 103)** and **F9 (undo, 98)** at the top, with the headline detector **F5** climbing to **93** — G4 reinforces it, because _seeing_ a loop classified R/B is itself the lesson. The lesson holds: loop insight is only as good as its _inputs_ and _ergonomics_ — effortless wiring (F2) and polarity capture (F6) matter as much as detection, and a reliable safety net (F9) underwrites fearless building. **F10 (samples, 45)** is the lowest-leverage function, exactly right for a supporting aid: it earns its place by being nearly free — static Models reusing the whole pipeline, no new model code — not by priority. F4 (58) stays low: keep it lightweight (guide, don't nag).
 
 ## 5. Roof — Function × Function tradeoffs
 
 `◎` strong reinforce · `○` mild reinforce · `×` mild conflict · `⊗` strong conflict.
 
-|        | F2 | F3 | F4 | F5 | F6 | F9 |
-|--------|:--:|:--:|:--:|:--:|:--:|:--:|
-| **F2** | —  |    | ×  |    | ◎  |    |
-| **F3** |    | —  |    | ⊗  |    | ×  |
-| **F4** |    |    | —  | ○  |    |    |
-| **F5** |    |    |    | —  | ◎  |    |
-| **F6** |    |    |    |    | —  |    |
-| **F9** |    |    |    |    |    | —  |
+|        | F2  | F3  | F4  | F5  | F6  | F9  |
+| ------ | :-: | :-: | :-: | :-: | :-: | :-: |
+| **F2** |  —  |     |  ×  |     |  ◎  |     |
+| **F3** |     |  —  |     |  ⊗  |     |  ×  |
+| **F4** |     |     |  —  |  ○  |     |     |
+| **F5** |     |     |     |  —  |  ◎  |     |
+| **F6** |     |     |     |     |  —  |     |
+| **F9** |     |     |     |     |     |  —  |
 
 **Conflicts that actually shape the design:**
+
 - **F5 ⊗ F3** — live loop enumeration on every change vs the 60 fps frame budget. The design-shaping conflict. Mitigated by the **cap** (≤200 cycles) + running detection **off the render frame** (debounce / idle callback / worker). Owned by ADR-0001 + the §7 budget.
-- **F2 × F4** — guardrails can add friction to connecting. Mitigated by *guiding* the gesture (invalid handles refuse the drop) instead of erroring afterwards.
+- **F2 × F4** — guardrails can add friction to connecting. Mitigated by _guiding_ the gesture (invalid handles refuse the drop) instead of erroring afterwards.
 - **F3 × F9** — snapshot cloning on every change costs memory/time. Bounded by small models + a fixed-size ring buffer; revisit with structural sharing only if profiling demands.
-- **F2 ◎ F6, F5 ◎ F6** — polarity is captured *in* the connect gesture and *is* the detector's input; these reinforce, so build them together.
+- **F2 ◎ F6, F5 ◎ F6** — polarity is captured _in_ the connect gesture and _is_ the detector's input; these reinforce, so build them together.
+- **F10 × F7** — loading a sample calls `setModel`, which _replaces the whole document and clears undo history_. Against autosave (F7), one click could wipe real work. Mitigated by confirming the replace only when the canvas is non-empty (frictionless on the empty start). Owned by T6. (F7 and F10 sit outside the core roof table above; this is the new tension this release.)
 
 ## 6. Components & Function → Component map
 
-| ID  | Component                                            | ADR      |
-|-----|-----------------------------------------------------|----------|
+| ID  | Component                                           | ADR      |
+| --- | --------------------------------------------------- | -------- |
 | C1  | Vue Flow canvas (`@vue-flow/core` + addons)         | ADR-0002 |
 | C2  | Custom node components (Stock/Flow/Converter/Cloud) | ADR-0002 |
 | C3  | Custom edge components (InfoLink badge, Flow pipe)  | ADR-0002 |
@@ -421,38 +440,41 @@ Cells: strength 9/3/1. Importance Σ = Σ(weight × strength).
 | C10 | Import/Export (versioned JSON `io.ts`)              | —        |
 | C11 | Loop overlay UI (R/B badges, hover highlight)       | ADR-0001 |
 | C12 | Palette + chrome (DaisyUI toolbar, model list)      | —        |
+| C13 | Sample gallery (`model/samples.ts` + header menu)   | —        |
 
-|     | C1 | C2 | C3 | C4 | C5 | C6 | C7 | C8 | C9 | C10 | C11 | C12 |
-|-----|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:---:|:---:|:---:|
-| F1  | 9  | 9  |    |    | 3  | 9  |    |    |    |     |     | 9   |
-| F2  | 9  | 9  | 9  |    | 9  | 3  | 9  |    |    |     |     |     |
-| F3  | 9  | 3  | 3  |    |    | 9  |    |    |    |     |     |     |
-| F4  |    | 1  | 1  | 3  | 3  |    | 9  |    |    |     |     |     |
-| F5  |    |    |    | 3  | 1  |    |    | 9  |    |     | 9   |     |
-| F6  |    |    | 9  | 3  | 3  |    |    | 1  |    |     |     |     |
-| F7  |    |    |    |    | 9  |    |    |    | 9  |     |     |     |
-| F8  |    |    |    | 3  |    |    |    |    | 1  | 9   |     |     |
-| F9  |    |    |    |    | 9  |    |    |    |    |     |     |     |
+|     | C1  | C2  | C3  | C4  | C5  | C6  | C7  | C8  | C9  | C10 | C11 | C12 | C13 |
+| --- | :-: | :-: | :-: | :-: | :-: | :-: | :-: | :-: | :-: | :-: | :-: | :-: | :-: |
+| F1  |  9  |  9  |     |     |  3  |  9  |     |     |     |     |     |  9  |     |
+| F2  |  9  |  9  |  9  |     |  9  |  3  |  9  |     |     |     |     |     |     |
+| F3  |  9  |  3  |  3  |     |     |  9  |     |     |     |     |     |     |     |
+| F4  |     |  1  |  1  |  3  |  3  |     |  9  |     |     |     |     |     |     |
+| F5  |     |     |     |  3  |  1  |     |     |  9  |     |     |  9  |     |     |
+| F6  |     |     |  9  |  3  |  3  |     |     |  1  |     |     |     |     |     |
+| F7  |     |     |     |     |  9  |     |     |     |  9  |     |     |     |     |
+| F8  |     |     |     |  3  |     |     |     |     |  1  |  9  |     |     |     |
+| F9  |     |     |     |     |  9  |     |     |     |     |     |     |     |     |
+| F10 |  1  |     |     |     |  3  |     |     |     |     |     |     |     |  9  |
 
 ## 7. Critical performance budget
 
-| Rank | Function | Target                     | Watched on                          | If we miss it                                              |
-|------|----------|----------------------------|-------------------------------------|-----------------------------------------------------------|
-| 1    | F5       | ≤16 ms recompute @ ≤150    | bench on synthetic dense graphs     | enforce cycle cap; move detection off-frame (idle/worker); debounce |
-| 2    | F3       | 60 fps pan/zoom/drag @ ≤150| frame profiling in DevTools         | memoise projection; simplify node DOM; virtualise off-screen nodes |
-| 3    | F2       | 1 drag, 0 menus            | manual UX walkthrough               | simplify handle model; reduce connect steps               |
-| 4    | F7       | ≤500 ms debounce, 0 loss   | reload-after-edit integration test  | flush on `visibilitychange`/`beforeunload`                |
-| 5    | F8       | export→import identity     | property test (round-trip)          | pin schema; add migration on `version` bump               |
+| Rank | Function | Target                      | Watched on                         | If we miss it                                                       |
+| ---- | -------- | --------------------------- | ---------------------------------- | ------------------------------------------------------------------- |
+| 1    | F5       | ≤16 ms recompute @ ≤150     | bench on synthetic dense graphs    | enforce cycle cap; move detection off-frame (idle/worker); debounce |
+| 2    | F3       | 60 fps pan/zoom/drag @ ≤150 | frame profiling in DevTools        | memoise projection; simplify node DOM; virtualise off-screen nodes  |
+| 3    | F2       | 1 drag, 0 menus             | manual UX walkthrough              | simplify handle model; reduce connect steps                         |
+| 4    | F7       | ≤500 ms debounce, 0 loss    | reload-after-edit integration test | flush on `visibilitychange`/`beforeunload`                          |
+| 5    | F8       | export→import identity      | property test (round-trip)         | pin schema; add migration on `version` bump                         |
 
 ## 8. Tradeoffs — Got / Paid / ADR
 
-| ID  | Tradeoff                                   | Got                                              | Paid                                                | ADR      |
-|-----|--------------------------------------------|--------------------------------------------------|-----------------------------------------------------|----------|
-| T1  | Vue Flow over hand-rolled SVG              | fast F1–F3, batteries-included editor mechanics  | a dependency owning the view layer + a Model↔VueFlow projection to maintain | ADR-0002 |
-| T2  | Flow-as-node + materialised Clouds         | uniform graph for loops/render; info-links can target flows; sim-clean | Cloud lifecycle management; a node that renders as a pipe | ADR-0003 |
-| T3  | Enumerate loops with a cap                 | per-loop R/B insight (G2) within the frame budget | capped completeness on pathological graphs ("+N more") | ADR-0001 |
-| T4  | IndexedDB(`idb`) behind `ModelRepository`  | size headroom + swappable engine (sync later)    | async wrapper + a small dependency; no sync today   | —        |
-| T5  | Snapshot undo over command pattern         | simplicity and correctness                       | memory per snapshot (bounded by ring buffer + small models) | —        |
+| ID  | Tradeoff                                  | Got                                                                                     | Paid                                                                                                 | ADR      |
+| --- | ----------------------------------------- | --------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- | -------- |
+| T1  | Vue Flow over hand-rolled SVG             | fast F1–F3, batteries-included editor mechanics                                         | a dependency owning the view layer + a Model↔VueFlow projection to maintain                          | ADR-0002 |
+| T2  | Flow-as-node + materialised Clouds        | uniform graph for loops/render; info-links can target flows; sim-clean                  | Cloud lifecycle management; a node that renders as a pipe                                            | ADR-0003 |
+| T3  | Enumerate loops with a cap                | per-loop R/B insight (G2) within the frame budget                                       | capped completeness on pathological graphs ("+N more")                                               | ADR-0001 |
+| T4  | IndexedDB(`idb`) behind `ModelRepository` | size headroom + swappable engine (sync later)                                           | async wrapper + a small dependency; no sync today                                                    | —        |
+| T5  | Snapshot undo over command pattern        | simplicity and correctness                                                              | memory per snapshot (bounded by ring buffer + small models)                                          | —        |
+| T6  | Samples load by replacing the whole Model | a sample is _just a Model_ — no special load path; reuses the whole pipeline; one click | the load is destructive (`setModel` clears undo history); guarded by a confirm on a non-empty canvas | —        |
 
 ### Tensions being watched (unresolved by design)
 
@@ -464,6 +486,7 @@ Cells: strength 9/3/1. Importance Σ = Σ(weight × strength).
 - **Brief vocabulary vs glossary.** The original request said "functions," "arrows," "faucets"; DESIGN uses the resolved CONTEXT.md terms verbatim — **Converter**, **Flow**/**Information Link**, faucet dropped.
 - **G3 ambiguity.** "Safe and portable" initially read as possible cloud sync; clarified — G3 is satisfied by **local persistence + JSON export**, not sync (PouchDB deferred, see Tensions).
 - **Storage default drift.** Initial recommendation was localStorage; resolved to **IndexedDB via `idb`**, behind a `ModelRepository` interface so the engine choice is no longer hard-to-reverse.
+- **Teaching intent unrecorded.** The project is framed as Meadows-inspired (README) and the whole vocabulary is pedagogical (CONTEXT.md), yet no Goal captured "teach the language" until now — the intent lived only in the vision. Surfaced and recorded as **G4** (weight 4), answered by the sample gallery (**F10** / **C13**).
 
 ---
 

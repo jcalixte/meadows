@@ -2,7 +2,7 @@
 
 The ubiquitous language for **meadows** — a web app for building systems-thinking
 models (stock-and-flow diagrams with feedback loops) in the spirit of Donella
-Meadows' *Thinking in Systems*. The diagram is the product now; numeric simulation
+Meadows' _Thinking in Systems_. The diagram is the product now; numeric simulation
 is a planned later phase, so the language is chosen to be simulation-ready.
 
 Part of [meadows](./README.md); see [DESIGN.md](./DESIGN.md) for how these terms
@@ -12,7 +12,7 @@ map to goals, functions, and components.
 
 **System**:
 The real-world thing being studied — an interconnected set of elements producing
-a behaviour over time. It is the *referent*, never the artifact in the app.
+a behaviour over time. It is the _referent_, never the artifact in the app.
 _Avoid_: model, diagram, map (those are the artifact, not the real thing).
 
 **Model**:
