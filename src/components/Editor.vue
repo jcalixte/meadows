@@ -359,7 +359,7 @@ onBeforeUnmount(() => {
           <button tabindex="0" class="btn btn-ghost btn-sm">Samples</button>
           <ul
             tabindex="0"
-            class="dropdown-content menu z-10 mt-1 w-72 gap-1 rounded-box border border-base-300 bg-base-100 p-2 shadow-lg"
+            class="dropdown-content menu z-40 mt-1 max-h-80 w-72 flex-nowrap gap-1 overflow-y-auto rounded-box border border-base-300 bg-base-100 p-2 shadow-lg"
           >
             <li v-for="sample in SAMPLES" :key="sample.title">
               <button class="flex flex-col items-start gap-0.5" @click="loadSample(sample)">
