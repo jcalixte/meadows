@@ -95,7 +95,10 @@ function options(width: number): uPlot.Options {
   return {
     width,
     height: props.height,
-    cursor: { y: false },
+    // No y crosshair, and no click-drag-to-zoom (uPlot's drag.setScale defaults
+    // on): the chart is a read-only readout — the playhead drives time, not a
+    // drag-selected zoom region.
+    cursor: { y: false, drag: { x: false, y: false } },
     scales: { x: { time: false } },
     series: [
       {},
