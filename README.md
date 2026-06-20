@@ -19,6 +19,9 @@ Deployed at https://meadows.apoena.dev
     substrate; the domain Model is the source of truth.
   - [ADR-0003](./docs/adr/0003-flow-as-node-materialised-clouds.md) — a Flow is a
     node; Source/Sink clouds are materialised nodes.
+  - [ADR-0004](./docs/adr/0004-rate-rules-not-formulas.md) — simulation behaviour
+    comes from a small fixed vocabulary of rules over Information Links, not
+    free-form formulas.
 
 ## Stack
 

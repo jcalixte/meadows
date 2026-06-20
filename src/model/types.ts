@@ -31,6 +31,37 @@ export interface Position {
   y: number
 }
 
+/**
+ * How a Flow's rate or a Converter's value is computed — a small fixed
+ * vocabulary, *not* a free-form formula, so a Model stays valid by construction
+ * and teaches structure → behaviour (ADR-0004). Operands are read from the
+ * element's inbound Information Links; Polarity selects each operand's role.
+ *
+ *  - `constant`     — a fixed number; reads nothing. (→ linear Stock change)
+ *  - `proportional` — `factor ×` the product of its `+`-polarity inputs.
+ *                     (→ exponential growth/decay)
+ *  - `gap`          — `factor × (level − target)`, where the `+` input is the
+ *                     level and the `−` input the target. (→ goal-seeking)
+ */
+export type Rule =
+  | { kind: "constant"; value: number }
+  | { kind: "proportional"; factor: number }
+  | { kind: "gap"; factor: number }
+
+/**
+ * The run parameters for a simulation: integrate from `start` to `stop` in steps
+ * of `dt` (forward Euler). Optional on a Model; absent means the diagram phase or
+ * a not-yet-simulated Model — the engine falls back to `DEFAULT_SIM_SPEC`.
+ */
+export interface SimSpec {
+  start: number
+  stop: number
+  dt: number
+}
+
+/** Sensible default run when a Model carries no `sim` of its own. */
+export const DEFAULT_SIM_SPEC: SimSpec = { start: 0, stop: 100, dt: 1 }
+
 interface BaseNode {
   id: string
   position: Position
@@ -60,8 +91,8 @@ export interface FlowNode extends BaseNode {
   source: string
   /** Node id of the Stock or Cloud the Flow feeds into. */
   target: string
-  /** Rate expression, recomputed each instant. Optional in the diagram phase. */
-  equation?: string
+  /** How its rate is computed each instant (ADR-0004). Optional in the diagram phase. */
+  rule?: Rule
 }
 
 /**
@@ -71,8 +102,8 @@ export interface FlowNode extends BaseNode {
 export interface ConverterNode extends BaseNode {
   kind: "converter"
   name: string
-  /** Expression or constant. Optional in the diagram phase. */
-  equation?: string
+  /** How its value is computed each instant (ADR-0004). Optional in the diagram phase. */
+  rule?: Rule
 }
 
 /**
@@ -107,4 +138,6 @@ export interface Model {
   name: string
   nodes: ModelNode[]
   infoLinks: InformationLink[]
+  /** Run parameters for simulation (ADR-0004). Optional; absent → not yet simulated. */
+  sim?: SimSpec
 }

@@ -21,6 +21,8 @@ import {
   type NodeKind,
   type Polarity,
   type Position,
+  type Rule,
+  type SimSpec,
 } from "./types"
 
 /** Pretty JSON so an exported Model is human-readable and diff-friendly (F8). */
@@ -49,6 +51,24 @@ function isPolarity(value: unknown): value is Polarity {
   return value === "+" || value === "-"
 }
 
+/** A Rule must be one of the fixed kinds with its numeric parameter (ADR-0004). */
+function isRule(value: unknown): value is Rule {
+  if (!isObject(value)) return false
+  if (value.kind === "constant") return isFiniteNumber(value.value)
+  if (value.kind === "proportional" || value.kind === "gap") return isFiniteNumber(value.factor)
+  return false
+}
+
+function isSimSpec(value: unknown): value is SimSpec {
+  return (
+    isObject(value) &&
+    isFiniteNumber(value.start) &&
+    isFiniteNumber(value.stop) &&
+    isFiniteNumber(value.dt) &&
+    value.dt > 0
+  )
+}
+
 /** Validate one node by kind, returning an error string or null when valid. */
 function nodeError(value: unknown, index: number): string | null {
   if (!isObject(value)) return `nodes[${index}] is not an object`
@@ -64,6 +84,17 @@ function nodeError(value: unknown, index: number): string | null {
   if (kind === "flow") {
     if (typeof value.source !== "string") return `${at}.source must be a string`
     if (typeof value.target !== "string") return `${at}.target must be a string`
+  }
+  // Simulation fields (ADR-0004) are optional, but if present must be well-formed.
+  if (kind === "stock" && value.initialValue !== undefined && !isFiniteNumber(value.initialValue)) {
+    return `${at}.initialValue must be a finite number`
+  }
+  if (
+    (kind === "flow" || kind === "converter") &&
+    value.rule !== undefined &&
+    !isRule(value.rule)
+  ) {
+    return `${at}.rule must be a valid rule (constant/proportional/gap)`
   }
   return null
 }
@@ -104,6 +135,9 @@ export function parseModel(text: string): ParseResult {
   if (typeof data.name !== "string") return { ok: false, error: "name must be a string" }
   if (!Array.isArray(data.nodes)) return { ok: false, error: "nodes must be an array" }
   if (!Array.isArray(data.infoLinks)) return { ok: false, error: "infoLinks must be an array" }
+  if (data.sim !== undefined && !isSimSpec(data.sim)) {
+    return { ok: false, error: "sim must be {start, stop, dt} numbers with dt > 0" }
+  }
 
   for (let i = 0; i < data.nodes.length; i++) {
     const error = nodeError(data.nodes[i], i)
@@ -134,6 +168,13 @@ export function parseModel(text: string): ParseResult {
 
   return {
     ok: true,
-    model: { version: MODEL_VERSION, id: data.id, name: data.name, nodes, infoLinks: links },
+    model: {
+      version: MODEL_VERSION,
+      id: data.id,
+      name: data.name,
+      nodes,
+      infoLinks: links,
+      ...(data.sim !== undefined && { sim: data.sim as SimSpec }),
+    },
   }
 }
