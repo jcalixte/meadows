@@ -44,6 +44,7 @@ import {
   MODEL_VERSION,
   type ModelNode,
   type Polarity,
+  type SimSpec,
 } from "./types"
 
 /** A loadable example: a title and one-line blurb for the menu, plus a builder. */
@@ -58,8 +59,13 @@ function link(source: ModelNode, target: ModelNode, polarity: Polarity): Informa
   return { id: newId("link"), source: source.id, target: target.id, polarity }
 }
 
-function model(name: string, nodes: ModelNode[], infoLinks: InformationLink[]): Model {
-  return { version: MODEL_VERSION, id: newId("model"), name, nodes, infoLinks }
+function model(
+  name: string,
+  nodes: ModelNode[],
+  infoLinks: InformationLink[],
+  sim?: SimSpec,
+): Model {
+  return { version: MODEL_VERSION, id: newId("model"), name, nodes, infoLinks, sim }
 }
 
 /**
@@ -70,6 +76,7 @@ function model(name: string, nodes: ModelNode[], infoLinks: InformationLink[]): 
 function bathtub(): Model {
   const source = makeCloud({ x: -280, y: 0 })
   const water = makeStock({ x: 0, y: 0 }, "Water")
+  water.initialValue = 20
   const sink = makeCloud({ x: 280, y: 0 })
   const filling = makeFlow(
     midpoint(source.position, water.position),
@@ -78,7 +85,15 @@ function bathtub(): Model {
     water.id,
   )
   const emptying = makeFlow(midpoint(water.position, sink.position), "emptying", water.id, sink.id)
-  return model("Bathtub", [source, water, sink, filling, emptying], [])
+  // No Information Links, so each rate is a plain Constant. A faster inflow than
+  // outflow means Water rises in a straight line — accumulation with no feedback.
+  filling.rule = { kind: "constant", value: 5 }
+  emptying.rule = { kind: "constant", value: 3 }
+  return model("Bathtub", [source, water, sink, filling, emptying], [], {
+    start: 0,
+    stop: 40,
+    dt: 1,
+  })
 }
 
 /**
@@ -92,13 +107,21 @@ function savings(): Model {
   // visible Reinforcing loop instead of overlapping the inflow pipe.
   const source = makeCloud({ x: -240, y: -80 })
   const balance = makeStock({ x: 120, y: 40 }, "Balance")
+  balance.initialValue = 1000
   const interest = makeFlow(
     midpoint(source.position, balance.position),
     "interest",
     source.id,
     balance.id,
   )
-  return model("Savings account", [source, balance, interest], [link(balance, interest, "+")])
+  // interest = 5% × Balance (the `+` link). A Stock feeding its own inflow → the
+  // Reinforcing loop runs as exponential growth.
+  interest.rule = { kind: "proportional", factor: 0.05 }
+  return model("Savings account", [source, balance, interest], [link(balance, interest, "+")], {
+    start: 0,
+    stop: 40,
+    dt: 1,
+  })
 }
 
 /**
@@ -109,13 +132,19 @@ function savings(): Model {
  */
 function coffee(): Model {
   const coffee = makeStock({ x: -200, y: 0 }, "Coffee")
+  coffee.initialValue = 90
   const sink = makeCloud({ x: 200, y: 0 })
   const cooling = makeFlow(midpoint(coffee.position, sink.position), "cooling", coffee.id, sink.id)
+  // cooling = 0.1 × (Coffee − room): the `+` input is the level, the `−` the target.
+  // An outflow closing the gap to room temperature → the Balancing loop settles there.
+  cooling.rule = { kind: "gap", factor: 0.1 }
   const room = makeConverter({ x: 0, y: -160 }, "room temperature")
+  room.rule = { kind: "constant", value: 20 }
   return model(
     "Coffee cooling",
     [coffee, sink, cooling, room],
     [link(coffee, cooling, "+"), link(room, cooling, "-")],
+    { start: 0, stop: 60, dt: 1 },
   )
 }
 
@@ -132,11 +161,23 @@ function population(): Model {
   // Valves are placed by hand, not at the midpoint, to hold the steps.
   const source = makeCloud({ x: -360, y: -240 })
   const fertility = makeConverter({ x: -360, y: -40 }, "fertility")
+  fertility.rule = { kind: "constant", value: 0.03 }
   const lifeExpectancy = makeConverter({ x: -360, y: 240 }, "life expectancy")
+  // Wired into deaths for the Balancing loop's structure, but not yet read by the
+  // rate: a faithful "deaths = Population ÷ life expectancy" needs a divide rule we
+  // don't have, so deaths uses a flat mortality rate below. (See the gallery notes.)
+  lifeExpectancy.rule = { kind: "constant", value: 70 }
   const people = makeStock({ x: 0, y: 0 }, "Population")
+  people.initialValue = 100
   const births = makeFlow({ x: -160, y: -160 }, "births", source.id, people.id)
+  // births = fertility × Population (both `+` inputs): more people and higher
+  // fertility, more births — the Reinforcing engine.
+  births.rule = { kind: "proportional", factor: 1 }
   const sink = makeCloud({ x: 360, y: 240 })
   const deaths = makeFlow({ x: 160, y: 160 }, "deaths", people.id, sink.id)
+  // deaths = 2% of Population each step (its `+` input) — the Balancing drain. With
+  // births at 3%, the Reinforcing loop wins and the population grows exponentially.
+  deaths.rule = { kind: "proportional", factor: 0.02 }
   return model(
     "Population",
     [source, people, sink, births, deaths, fertility, lifeExpectancy],
@@ -146,6 +187,7 @@ function population(): Model {
       link(people, deaths, "+"),
       link(lifeExpectancy, deaths, "-"),
     ],
+    { start: 0, stop: 100, dt: 1 },
   )
 }
 
@@ -192,6 +234,7 @@ function predatorPrey(): Model {
   // cross-stock loop traces a circuit through the open centre.
   const preySource = makeCloud({ x: -480, y: -140 })
   const rabbits = makeStock({ x: -80, y: -140 }, "Rabbits")
+  rabbits.initialValue = 100
   const preySink = makeCloud({ x: 320, y: -140 })
   const rabbitBirths = makeFlow(
     midpoint(preySource.position, rabbits.position),
@@ -199,14 +242,19 @@ function predatorPrey(): Model {
     preySource.id,
     rabbits.id,
   )
+  // rabbits breed in proportion to themselves (Reinforcing) …
+  rabbitBirths.rule = { kind: "proportional", factor: 0.08 }
   const predation = makeFlow(
     midpoint(rabbits.position, preySink.position),
     "predation",
     rabbits.id,
     preySink.id,
   )
+  // … and are thinned by predation = rabbits × foxes (both `+`): the coupling term.
+  predation.rule = { kind: "proportional", factor: 0.004 }
   const foxSource = makeCloud({ x: -480, y: 140 })
   const foxes = makeStock({ x: -80, y: 140 }, "Foxes")
+  foxes.initialValue = 20
   const foxSink = makeCloud({ x: 320, y: 140 })
   const foxBirths = makeFlow(
     midpoint(foxSource.position, foxes.position),
@@ -214,12 +262,17 @@ function predatorPrey(): Model {
     foxSource.id,
     foxes.id,
   )
+  // foxes are born in proportion to the rabbits available to eat …
+  foxBirths.rule = { kind: "proportional", factor: 0.02 }
   const foxDeaths = makeFlow(
     midpoint(foxes.position, foxSink.position),
     "fox deaths",
     foxes.id,
     foxSink.id,
   )
+  // … and die off on their own. The lag around the loop makes the two populations
+  // chase each other. (Forward Euler damps the orbit — see the gallery notes.)
+  foxDeaths.rule = { kind: "proportional", factor: 0.2 }
   return model(
     "Predator and prey",
     [
@@ -241,6 +294,7 @@ function predatorPrey(): Model {
       link(rabbits, foxBirths, "+"),
       link(foxes, foxDeaths, "+"),
     ],
+    { start: 0, stop: 120, dt: 0.25 },
   )
 }
 
@@ -255,21 +309,32 @@ function predatorPrey(): Model {
  */
 function epidemic(): Model {
   const susceptible = makeStock({ x: -280, y: 0 }, "Susceptible")
+  susceptible.initialValue = 990
   const infected = makeStock({ x: 0, y: 0 }, "Infected")
+  infected.initialValue = 10
   const recovered = makeStock({ x: 280, y: 0 }, "Recovered")
+  recovered.initialValue = 0
   const infection = makeFlow(
     midpoint(susceptible.position, infected.position),
     "infection",
     susceptible.id,
     infected.id,
   )
+  // infection = infectivity × Susceptible × Infected (proportional reads all three
+  // `+` inputs): the more carriers and the more susceptibles, the faster it spreads.
+  // The non-negative-stock floor keeps Susceptible from being over-drained.
+  infection.rule = { kind: "proportional", factor: 1 }
   const recovery = makeFlow(
     midpoint(infected.position, recovered.position),
     "recovery",
     infected.id,
     recovered.id,
   )
+  // recovery = 15% of the Infected each step (its one `+` input).
+  recovery.rule = { kind: "proportional", factor: 0.15 }
   const infectivity = makeConverter({ x: -140, y: -160 }, "infectivity")
+  // Small, so infectivity × S × I stays a sane rate (R0 = infectivity·S₀/γ ≈ 2.6).
+  infectivity.rule = { kind: "constant", value: 0.0004 }
   return model(
     "Epidemic",
     [susceptible, infected, recovered, infection, recovery, infectivity],
@@ -279,6 +344,7 @@ function epidemic(): Model {
       link(infected, recovery, "+"),
       link(infectivity, infection, "+"),
     ],
+    { start: 0, stop: 60, dt: 1 },
   )
 }
 
@@ -295,17 +361,22 @@ function epidemic(): Model {
  */
 function tragedyOfTheCommons(): Model {
   const pasture = makeStock({ x: 0, y: 0 }, "Pasture")
+  pasture.initialValue = 1000
   // Two symmetric herds: cattle enter from a Source on the outside, grass leaves
   // the Pasture downward to a Sink. The two `Pasture → growth` links are the weak
   // brake the trap overruns.
   const sourceA = makeCloud({ x: -640, y: 0 })
   const herdA = makeStock({ x: -360, y: 0 }, "Herd A")
+  herdA.initialValue = 10
   const growthA = makeFlow(
     midpoint(sourceA.position, herdA.position),
     "growth A",
     sourceA.id,
     herdA.id,
   )
+  // growth = herd × Pasture (both `+`): each herd grows the more cattle it has and
+  // the more grass is left — a Reinforcing loop, braked only by the shared Pasture.
+  growthA.rule = { kind: "proportional", factor: 0.0003 }
   const sinkA = makeCloud({ x: -200, y: 240 })
   const grazingA = makeFlow(
     midpoint(pasture.position, sinkA.position),
@@ -313,14 +384,19 @@ function tragedyOfTheCommons(): Model {
     pasture.id,
     sinkA.id,
   )
+  // grazing = 6% of the herd, drained from the *shared* Pasture (which never
+  // regrows here): two appetites racing one stock down to bare dirt.
+  grazingA.rule = { kind: "proportional", factor: 0.06 }
   const sourceB = makeCloud({ x: 640, y: 0 })
   const herdB = makeStock({ x: 360, y: 0 }, "Herd B")
+  herdB.initialValue = 10
   const growthB = makeFlow(
     midpoint(sourceB.position, herdB.position),
     "growth B",
     sourceB.id,
     herdB.id,
   )
+  growthB.rule = { kind: "proportional", factor: 0.0003 }
   const sinkB = makeCloud({ x: 200, y: 240 })
   const grazingB = makeFlow(
     midpoint(pasture.position, sinkB.position),
@@ -328,6 +404,7 @@ function tragedyOfTheCommons(): Model {
     pasture.id,
     sinkB.id,
   )
+  grazingB.rule = { kind: "proportional", factor: 0.06 }
   return model(
     "Tragedy of the commons",
     [pasture, sourceA, herdA, growthA, sinkA, grazingA, sourceB, herdB, growthB, sinkB, grazingB],
@@ -339,6 +416,7 @@ function tragedyOfTheCommons(): Model {
       link(herdB, grazingB, "+"),
       link(pasture, growthB, "+"),
     ],
+    { start: 0, stop: 60, dt: 1 },
   )
 }
 
@@ -357,24 +435,31 @@ function escalation(): Model {
   // cross there, where the R badge lands, so the whole loop reads at a glance.
   const blueSource = makeCloud({ x: -560, y: -120 })
   const blueArsenal = makeStock({ x: 280, y: -120 }, "Blue arsenal")
+  blueArsenal.initialValue = 10
   const blueBuildup = makeFlow(
     midpoint(blueSource.position, blueArsenal.position),
     "Blue buildup",
     blueSource.id,
     blueArsenal.id,
   )
+  // Each side builds in proportion to the other's arsenal (its one `+` input), so
+  // the two feed each other: a Reinforcing loop with no brake → unbounded growth.
+  blueBuildup.rule = { kind: "proportional", factor: 0.1 }
   const redSource = makeCloud({ x: -560, y: 120 })
   const redArsenal = makeStock({ x: 280, y: 120 }, "Red arsenal")
+  redArsenal.initialValue = 12
   const redBuildup = makeFlow(
     midpoint(redSource.position, redArsenal.position),
     "Red buildup",
     redSource.id,
     redArsenal.id,
   )
+  redBuildup.rule = { kind: "proportional", factor: 0.1 }
   return model(
     "Escalation",
     [blueSource, blueArsenal, blueBuildup, redSource, redArsenal, redBuildup],
     [link(blueArsenal, redBuildup, "+"), link(redArsenal, blueBuildup, "+")],
+    { start: 0, stop: 40, dt: 1 },
   )
 }
 
@@ -396,13 +481,22 @@ function fixesThatFail(): Model {
   // the diagonal back to Congestion. Placed by hand, not midpoint, to hold the column.
   const source = makeCloud({ x: -420, y: 120 })
   const congestion = makeStock({ x: 300, y: 120 }, "Congestion")
+  congestion.initialValue = 50
   const driving = makeFlow({ x: -120, y: 120 }, "driving", source.id, congestion.id)
+  // driving = 1.5 × road building (its `+` input): every new road induces *more*
+  // traffic than it cleared — the side effect that refills the symptom.
+  driving.rule = { kind: "proportional", factor: 1.5 }
   const sink = makeCloud({ x: 300, y: -160 })
   const roadBuilding = makeFlow({ x: -120, y: -160 }, "road building", congestion.id, sink.id)
+  // road building = 40% of Congestion (its `+` input), draining it: the Balancing
+  // fix. But induced driving outweighs it, so the Reinforcing loop wins and
+  // Congestion climbs anyway — you can't build your way out of traffic.
+  roadBuilding.rule = { kind: "proportional", factor: 0.4 }
   return model(
     "Fixes that fail",
     [source, congestion, driving, sink, roadBuilding],
     [link(congestion, roadBuilding, "+"), link(roadBuilding, driving, "+")],
+    { start: 0, stop: 30, dt: 1 },
   )
 }
 
@@ -422,13 +516,18 @@ function driftToLowPerformance(): Model {
   // Reinforcing spiral cross in the open centre, where the R badge lands.
   const source = makeCloud({ x: -560, y: 120 })
   const performance = makeStock({ x: -160, y: 120 }, "Performance")
+  performance.initialValue = 40
   const improvement = makeFlow(
     midpoint(source.position, performance.position),
     "improvement",
     source.id,
     performance.id,
   )
+  // improvement closes the gap upward: 10% of (Standard − Performance), pulling
+  // Performance toward the Standard.
+  improvement.rule = { kind: "gap", factor: 0.1 }
   const standard = makeStock({ x: 160, y: -120 }, "Standard")
+  standard.initialValue = 80
   const sink = makeCloud({ x: 560, y: -120 })
   const slippage = makeFlow(
     midpoint(standard.position, sink.position),
@@ -436,6 +535,10 @@ function driftToLowPerformance(): Model {
     standard.id,
     sink.id,
   )
+  // slippage erodes the *same* gap from the other side: the Standard drifts down
+  // toward actual Performance. Both gaps close, so they meet — the Standard has
+  // sagged from 80 to the middle, the eroding-goal trap.
+  slippage.rule = { kind: "gap", factor: 0.1 }
   return model(
     "Drift to low performance",
     [source, performance, improvement, standard, sink, slippage],
@@ -445,6 +548,7 @@ function driftToLowPerformance(): Model {
       link(standard, slippage, "+"),
       link(performance, slippage, "-"),
     ],
+    { start: 0, stop: 60, dt: 1 },
   )
 }
 
