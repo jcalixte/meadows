@@ -163,6 +163,306 @@ Cells: strength 9/3/1. Importance Σ = Σ(weight × strength).
 - **G3 ambiguity.** "Safe and portable" initially read as possible cloud sync; clarified — G3 is satisfied by **local persistence + JSON export**, not sync (PouchDB deferred, see Tensions).
 - **Storage default drift.** Initial recommendation was localStorage; resolved to **IndexedDB via `idb`**, behind a `ModelRepository` interface so the engine choice is no longer hard-to-reverse.
 
+## House of Quality (visual)
+
+One picture of §1 (Goals, left), §2 (Functions, top), §4 (relation matrix, body),
+§5 (roof, correlations) and §7/§4 (basement: targets + importance Σ + relative %).
+The tables above stay authoritative — regenerate this when they change. Relation
+symbols: ● strong (9) · ◐ medium (3) · △ weak (1). Roof: `++`/`+` reinforce,
+`−`/`−−` conflict.
+
+```tikz
+% =====================================================================
+% QFD "House of Quality" preamble
+% =====================================================================
+\usetikzlibrary{arrows.meta, positioning, shapes.geometric, shapes.misc, calc, fit, backgrounds}
+
+% Toggles — flip before \begin{qfdhouse} to hide sections.
+\newif\ifqfdshowroof          \qfdshowrooftrue
+\newif\ifqfdshowbasement      \qfdshowbasementtrue
+\newif\ifqfdshowcompetitive   \qfdshowcompetitivetrue
+\newif\ifqfdshowlegend        \qfdshowlegendtrue
+\newif\ifqfdshowimportance    \qfdshowimportancetrue
+\newif\ifqfdshowcorrlegend    \qfdshowcorrlegendtrue
+\newif\ifqfdshowevallegend    \qfdshowevallegendtrue
+
+% Dimensions — override before \begin{qfdhouse} to resize.
+\def\qfdNW{5}           % number of WHATs (rows)
+\def\qfdNH{5}           % number of HOWs (columns)
+\def\qfdWhatW{4.0}      % width of WHATs column
+\def\qfdImpW{0.9}       % width of importance column
+\def\qfdCmpW{3}         % width of perception zone
+\def\qfdHdrH{2.6}       % height of column-titles band
+\def\qfdBasementN{4}    % number of basement rows
+
+% Titles & labels — override before \begin{qfdhouse}.
+\def\qfdWhatsTitle{Customer needs}
+\def\qfdImpTitle{Imp.\ \%}
+\def\qfdPerceptionTitle{Comparative evaluation}
+\def\qfdPoorLabel{poor}
+\def\qfdExcellentLabel{excellent}
+\def\qfdAltOneLabel{Our product}    % highlighted in legend
+\def\qfdAltTwoLabel{Competitor A}
+\def\qfdAltThreeLabel{Competitor B}
+\def\qfdRelTitle{Relation}
+\def\qfdCorrTitle{Correlation}
+\def\qfdEvalTitle{Evaluation}
+
+% Styles.
+\tikzset{
+  qfdthin/.style ={line width=0.35pt},
+  qfdmed/.style  ={line width=0.7pt},
+  qfdstrong/.style={circle, draw, fill=black,
+                    minimum size=7pt, inner sep=0pt},
+  qfdmod/.style  ={circle, draw,
+                    minimum size=7pt, inner sep=0pt, line width=0.8pt},
+  qfdweak/.style ={regular polygon, regular polygon sides=3, draw,
+                    minimum size=8.5pt, inner sep=0pt, line width=0.7pt},
+  qfdrel/.is choice,
+  qfdrel/S/.style={qfdstrong},
+  qfdrel/M/.style={qfdmod},
+  qfdrel/W/.style={qfdweak},
+  % Three perception-zone alternatives. Index 1 is emphasised.
+  qfdalt1mk/.style={circle, draw, fill=black,
+                    minimum size=6pt, inner sep=0pt, line width=1pt},
+  qfdalt1ln/.style={line width=1.2pt},
+  qfdalt2mk/.style={regular polygon, regular polygon sides=3, draw,
+                    fill=black, minimum size=6pt, inner sep=0pt,
+                    line width=0.7pt},
+  qfdalt2ln/.style={line width=0.7pt, dashed},
+  qfdalt3mk/.style={rectangle, draw, fill=black,
+                    minimum size=5pt, inner sep=0pt, line width=0.7pt},
+  qfdalt3ln/.style={line width=0.7pt, dotted},
+}
+
+% --- Grid lines for every zone. ---
+\newcommand{\qfdDrawGrid}{%
+  \foreach \c in {1,...,\qfdNHm} \draw[qfdthin] (\c, 0) -- (\c, -\qfdNW);
+  \foreach \r in {1,...,\qfdNWm} \draw[qfdthin] (0, -\r) -- (\qfdNH, -\r);
+  \foreach \r in {1,...,\qfdNWm}
+    \draw[qfdthin] (\qfdLeftEdge, -\r) -- (0, -\r);
+  \ifqfdshowroof
+    \foreach \c in {1,...,\qfdNHm}
+      \draw[qfdthin] (\c, 0) -- (\c, \qfdHdrH);
+  \fi
+  \ifqfdshowcompetitive
+    \foreach \r in {1,...,\qfdNWm}
+      \draw[qfdthin] (\qfdNH, -\r) -- (\qfdNH+\qfdCmpW, -\r);
+  \fi
+  \ifqfdshowbasement
+    \foreach \r in {1,...,\qfdBasementN}
+      \draw[qfdthin] (0, -\qfdNW-\r) -- (\qfdNH, -\qfdNW-\r);
+    \foreach \c in {1,...,\qfdNHm}
+      \draw[qfdthin] (\c, -\qfdNW) -- (\c, -\qfdNW-\qfdBasementN);
+  \fi
+}
+
+% --- Roof: diagonal grid + named coordinates (C-i-j) for correlations. ---
+\newcommand{\qfdDrawRoof}{%
+  \ifqfdshowroof
+    \foreach \k in {1,...,\qfdNHm} {%
+      \pgfmathsetmacro{\rx}{(\k+\qfdNH)/2}
+      \pgfmathsetmacro{\ry}{\qfdHdrH + (\qfdNH-\k)/2}
+      \pgfmathsetmacro{\lx}{\k/2}
+      \pgfmathsetmacro{\ly}{\qfdHdrH + \k/2}
+      \draw[qfdthin] (\k, \qfdHdrH) -- (\rx, \ry);
+      \draw[qfdthin] (\k, \qfdHdrH) -- (\lx, \ly);
+    }%
+    \draw[qfdmed] (0, \qfdHdrH)
+       -- (\qfdNH/2, \qfdApexY) -- (\qfdNH, \qfdHdrH);
+    \foreach \i in {1,...,\qfdNH}
+      \foreach \k in {1,...,\qfdNH} {%
+        \pgfmathtruncatemacro{\jj}{\i+\k}
+        \ifnum\jj>\qfdNH\relax\else
+          \pgfmathsetmacro{\xx}{\i + \k/2 - 0.5}
+          \pgfmathsetmacro{\yy}{\qfdHdrH + \k/2}
+          \coordinate (C-\i-\jj) at (\xx, \yy);
+        \fi
+      }%
+  \fi
+}
+
+% --- Perception scale 0..5 + poor/excellent endpoints + zone title. ---
+\newcommand{\qfdDrawScale}{%
+  \ifqfdshowcompetitive
+    \foreach \tk in {0,1,2,3,4,5} {%
+      \pgfmathsetmacro{\tx}{\qfdNH + (\tk+0.5)*\qfdCmpW/6}
+      \node[anchor=south, font=\scriptsize] at (\tx, 0.02) {\tk};
+    }%
+    \node[anchor=south, font=\scriptsize\bfseries, align=center]
+         at ({\qfdNH + \qfdCmpW/2}, 0.7) {\qfdPerceptionTitle};
+    \node[anchor=north, font=\scriptsize\itshape]
+         at ({\qfdNH + 0.45}, -\qfdNW) {\qfdPoorLabel};
+    \node[anchor=north, font=\scriptsize\itshape]
+         at ({\qfdNH + \qfdCmpW - 0.45}, -\qfdNW) {\qfdExcellentLabel};
+  \fi
+}
+
+% --- Importance title (left) and WHATs title (header band). ---
+\newcommand{\qfdDrawZoneTitles}{%
+  \ifqfdshowimportance
+    \node[rotate=90, anchor=west, font=\footnotesize\bfseries]
+         at ({-\qfdImpW/2}, 0.12) {\qfdImpTitle};
+  \fi
+  \node[font=\scriptsize\bfseries, align=center, text width=\qfdWhatW cm]
+       at ({\qfdLeftEdge + \qfdWhatW/2},
+           {\ifqfdshowroof \qfdHdrH/2 \else 0.6 \fi}) {\qfdWhatsTitle};
+}
+
+% --- Outer frames around each zone. ---
+\newcommand{\qfdDrawFrames}{%
+  \begin{scope}[qfdmed]
+    \draw (\qfdLeftEdge, 0) rectangle (\qfdNH, -\qfdNW);
+    \ifqfdshowimportance \draw (-\qfdImpW, 0) -- (-\qfdImpW, -\qfdNW); \fi
+    \draw (0, 0) -- (0, -\qfdNW);
+    \ifqfdshowroof
+      \draw (0, 0) rectangle (\qfdNH, \qfdHdrH); \fi
+    \ifqfdshowbasement
+      \draw (0, -\qfdNW) rectangle (\qfdNH, -\qfdNW-\qfdBasementN); \fi
+    \ifqfdshowcompetitive
+      \draw (\qfdNH, 0) rectangle (\qfdNH+\qfdCmpW, -\qfdNW); \fi
+  \end{scope}
+}
+
+% --- Legend on the right (Relations / Correlations / Evaluation). ---
+\newcommand{\qfdDrawLegend}{%
+  \ifqfdshowlegend
+    \pgfmathsetmacro{\qfdLegX}{%
+      \qfdNH + \ifqfdshowcompetitive \qfdCmpW + 0.7 \else 0.7 \fi}
+    \pgfmathsetmacro{\qfdLegBottom}{%
+      -2.05
+      \ifqfdshowroof    \ifqfdshowcorrlegend - 2.55 \fi \fi
+      \ifqfdshowcompetitive \ifqfdshowevallegend - 2.20 \fi \fi}
+    \pgfmathsetmacro{\qfdLegY}{\qfdHdrH - 0.4}
+    \begin{scope}[shift={(\qfdLegX, \qfdLegY)}]
+      \draw[qfdmed, rounded corners=2pt]
+        (-0.15, 0.4) rectangle (4.5, \qfdLegBottom);
+      % Relations
+      \node[anchor=west, font=\footnotesize\bfseries] at (0, 0.1)
+        {\qfdRelTitle};
+      \draw[qfdthin] (0, -0.15) -- (4.35, -0.15);
+      \node[qfdstrong] at (0.22, -0.5)  {};
+        \node[anchor=west] at (0.5, -0.5)  {Strong (9)};
+      \node[qfdmod]    at (0.22, -0.95) {};
+        \node[anchor=west] at (0.5, -0.95) {Medium (3)};
+      \node[qfdweak]   at (0.22, -1.4)  {};
+        \node[anchor=west] at (0.5, -1.4)  {Weak (1)};
+      % Correlations (roof)
+      \ifqfdshowroof \ifqfdshowcorrlegend
+        \node[anchor=west, font=\footnotesize\bfseries] at (0, -2.10)
+          {\qfdCorrTitle};
+        \draw[qfdthin] (0, -2.35) -- (4.35, -2.35);
+        \node[anchor=west] at (0, -2.70) {{$+\!+$}\quad very positive};
+        \node[anchor=west] at (0, -3.05) {{$+$\phantom{$+$}}\quad positive};
+        \node[anchor=west] at (0, -3.40) {{$-$\phantom{$-$}}\quad negative};
+        \node[anchor=west] at (0, -3.75) {{$-\!-$}\quad very negative};
+      \fi \fi
+      % Evaluation (3 alternatives)
+      \ifqfdshowcompetitive \ifqfdshowevallegend
+        \pgfmathsetmacro{\qfdEvalTop}{%
+          -2.10 \ifqfdshowroof\ifqfdshowcorrlegend - 2.55 \fi\fi}
+        \node[anchor=west, font=\footnotesize\bfseries]
+          at (0, \qfdEvalTop) {\qfdEvalTitle};
+        \pgfmathsetmacro{\qfdEvalSep}{\qfdEvalTop - 0.25}
+        \draw[qfdthin] (0, \qfdEvalSep) -- (4.35, \qfdEvalSep);
+        \pgfmathsetmacro{\qfdLegA}{\qfdEvalTop - 0.55}
+        \draw[qfdalt1ln] (0.05, \qfdLegA) -- (0.45, \qfdLegA);
+          \node[qfdalt1mk] at (0.25, \qfdLegA) {};
+          \node[anchor=west, font=\bfseries] at (0.55, \qfdLegA)
+            {\qfdAltOneLabel};
+        \pgfmathsetmacro{\qfdLegB}{\qfdEvalTop - 0.95}
+        \draw[qfdalt2ln] (0.05, \qfdLegB) -- (0.45, \qfdLegB);
+          \node[qfdalt2mk] at (0.25, \qfdLegB) {};
+          \node[anchor=west] at (0.55, \qfdLegB) {\qfdAltTwoLabel};
+        \pgfmathsetmacro{\qfdLegC}{\qfdEvalTop - 1.35}
+        \draw[qfdalt3ln] (0.05, \qfdLegC) -- (0.45, \qfdLegC);
+          \node[qfdalt3mk] at (0.25, \qfdLegC) {};
+          \node[anchor=west] at (0.55, \qfdLegC) {\qfdAltThreeLabel};
+      \fi \fi
+    \end{scope}
+  \fi
+}
+
+% --- The environment users wrap their content in. ---
+\newenvironment{qfdhouse}{%
+  \begin{tikzpicture}[x=1cm, y=1cm, font=\scriptsize,
+                      line cap=round, line join=round]
+  \ifqfdshowimportance
+    \pgfmathsetmacro{\qfdLeftEdge}{-\qfdWhatW-\qfdImpW}
+  \else
+    \pgfmathsetmacro{\qfdLeftEdge}{-\qfdWhatW}
+  \fi
+  \pgfmathsetmacro{\qfdApexY}{\qfdHdrH + \qfdNH/2}
+  \pgfmathtruncatemacro{\qfdNHm}{\qfdNH - 1}
+  \pgfmathtruncatemacro{\qfdNWm}{\qfdNW - 1}
+  \qfdDrawGrid
+  \qfdDrawRoof
+  \qfdDrawScale
+  \qfdDrawZoneTitles
+}{%
+  \qfdDrawFrames
+  \qfdDrawLegend
+  \end{tikzpicture}%
+}
+
+\begin{document}
+% --- meadows: 3 goals (WHATs) x 9 functions (HOWs); no competitor zone;
+%     basement = Target / Importance Sigma / Relative %. ---
+\def\qfdNW{3}
+\def\qfdNH{9}
+\def\qfdWhatW{4.2}
+\def\qfdBasementN{3}
+\def\qfdWhatsTitle{Goals (WHATs)}
+\def\qfdImpTitle{Weight}
+\qfdshowcompetitivefalse
+\begin{qfdhouse}
+  % --- WHATs (goals) + importance weight ---
+  \pgfmathsetmacro{\qfdWhatTextW}{\qfdWhatW - 0.2}
+  \foreach \r/\t in {1/{G1 Build with near-zero friction},
+                     2/{G2 Feedback surfaces as live insight},
+                     3/{G3 Models safe \& portable}}
+    \node[anchor=west, font=\scriptsize, text width=\qfdWhatTextW cm, align=left]
+      at ({\qfdLeftEdge + 0.1}, {-\r + 0.5}) {\t};
+  \foreach \r/\imp in {1/9, 2/8, 3/7}
+    \node[font=\scriptsize] at ({-\qfdImpW/2}, {-\r + 0.5}) {\imp};
+
+  % --- HOWs (functions, rotated) ---
+  \foreach \c/\t in {1/{F1 place node}, 2/{F2 connect},
+                     3/{F3 smooth canvas}, 4/{F4 valid inline},
+                     5/{F5 loops live}, 6/{F6 polarity},
+                     7/{F7 autosave}, 8/{F8 round-trip}, 9/{F9 undo/redo}}
+    \node[rotate=90, anchor=west, font=\scriptsize] at ({\c - 0.5}, 0.15) {\t};
+
+  % --- Relation matrix (col c = function, row r = goal); strength S/M/W ---
+  \foreach \c/\r/\s in {1/1/S, 2/1/S, 3/1/S, 4/1/M, 5/1/W, 6/1/M, 7/1/W, 9/1/M,
+                        2/2/M, 3/2/W, 4/2/M, 5/2/S, 6/2/S, 9/2/W,
+                        4/3/W, 7/3/S, 8/3/S, 9/3/S}
+    \node[qfdrel/\s] at ({\c - 0.5}, {-\r + 0.5}) {};
+
+  % --- Roof correlations (C-i-j, i<j); from DESIGN.md §5 ---
+  \node[font=\scriptsize] at (C-2-4) {$-$};      % F2 x F4 mild conflict
+  \node[font=\scriptsize] at (C-2-6) {$+\!+$};   % F2 o F6 strong reinforce
+  \node[font=\scriptsize] at (C-3-5) {$-\!-$};   % F3 x F5 strong conflict
+  \node[font=\scriptsize] at (C-3-9) {$-$};      % F3 x F9 mild conflict
+  \node[font=\scriptsize] at (C-4-5) {$+$};      % F4 o F5 mild reinforce
+  \node[font=\scriptsize] at (C-5-6) {$+\!+$};   % F5 o F6 strong reinforce
+
+  % --- Basement: Target / Importance Sigma / Relative %, + row labels ---
+  \foreach \rr/\lbl in {0/{Target}, 1/{Imp.\ $\Sigma$}, 2/{Rel.\ \%}}
+    \node[anchor=east, font=\scriptsize\itshape]
+      at (-0.1, {-\qfdNW - 0.5 - \rr}) {\lbl};
+  \foreach \c/\tgt/\sig/\rel in
+    {1/{1 gest.}/81/11, 2/{1 drag}/105/14, 3/{60 fps}/89/12,
+     4/{0 inv.}/58/8, 5/{$\le$16ms}/81/11, 6/{dflt $\pm$}/99/13,
+     7/{$\le$500ms}/72/10, 8/{id.}/63/8, 9/{$\ge$50}/98/13} {
+    \node[font=\scriptsize] at ({\c - 0.5}, {-\qfdNW - 0.5}) {\tgt};
+    \node[font=\scriptsize] at ({\c - 0.5}, {-\qfdNW - 1.5}) {\sig};
+    \node[font=\scriptsize\bfseries] at ({\c - 0.5}, {-\qfdNW - 2.5}) {\rel};
+  }
+\end{qfdhouse}
+\end{document}
+```
+
 ---
 
 ## How to keep this honest
