@@ -65,13 +65,9 @@ const {
   fitView,
 } = useVueFlow("meadows")
 
-// Restore the last document on mount and persist every change (F7). Fit the
-// view once a restored model has re-projected so it lands framed.
-useAutosave({ onRestore: () => fitView({ padding: 0.2 }) })
-
-// Fit the view after a *load* (sample/import), once the freshly projected nodes
-// have been measured. Vue Flow measures node dimensions a frame after they mount,
-// so calling fitView straight after setModel fits to 0×0 boxes and the model
+// Fit the view after a *load* (sample/import/restore), once the freshly projected
+// nodes have been measured. Vue Flow measures node dimensions a frame after they
+// mount, so calling fitView straight after setModel fits to 0×0 boxes and the model
 // lands jammed in the top-left; onNodesInitialized fires post-measure, so framing
 // is correct. A one-shot flag keeps it scoped to loads (not every re-init).
 let fitAfterInit = false
@@ -79,6 +75,15 @@ onNodesInitialized(() => {
   if (!fitAfterInit) return
   fitAfterInit = false
   fitView({ padding: 0.2 })
+})
+
+// Restore the last document on mount and persist every change (F7). Arm the same
+// post-measure fit a load uses; fitting synchronously in onRestore would frame
+// against unmeasured 0×0 nodes, landing the restored model jammed top-left.
+useAutosave({
+  onRestore: () => {
+    fitAfterInit = true
+  },
 })
 
 onNodeDragStart(() => store.beginInteraction())
