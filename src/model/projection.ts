@@ -54,6 +54,7 @@ export function projectEdges(model: Model): FlowGraphEdge[] {
     // Pipe in: source → valve. No arrowhead — the valve is the visual midpoint.
     edges.push({
       id: `${node.id}::in`,
+      type: "pipe",
       source: node.source,
       sourceHandle: HANDLE_OUT,
       target: node.id,
@@ -64,13 +65,14 @@ export function projectEdges(model: Model): FlowGraphEdge[] {
     // Pipe out: valve → target. Arrowhead carries the flow direction.
     edges.push({
       id: `${node.id}::out`,
+      type: "pipe",
       source: node.id,
       sourceHandle: HANDLE_OUT,
       target: node.target,
       targetHandle: HANDLE_IN,
       data: { kind: "pipe" },
       style: { strokeWidth: "2.5px" },
-      markerEnd: "arrowclosed",
+      markerEnd: "arrow",
     })
   }
 
@@ -86,7 +88,7 @@ export function projectEdges(model: Model): FlowGraphEdge[] {
       targetHandle: HANDLE_IN,
       data: { kind: "info", polarity: link.polarity },
       style: { strokeDasharray: "5 4" },
-      markerEnd: "arrowclosed",
+      markerEnd: "arrow",
     })
   }
 

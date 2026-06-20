@@ -36,6 +36,7 @@ import GlossPanel from "./GlossPanel.vue"
 import LoopOverlay from "./LoopOverlay.vue"
 import Palette from "./Palette.vue"
 import InfoLinkEdge from "./edges/InfoLinkEdge.vue"
+import PipeEdge from "./edges/PipeEdge.vue"
 import CloudNode from "./nodes/CloudNode.vue"
 import ConverterNode from "./nodes/ConverterNode.vue"
 import FlowNode from "./nodes/FlowNode.vue"
@@ -405,6 +406,9 @@ onBeforeUnmount(() => {
           <CloudNode v-bind="nodeProps" />
         </template>
 
+        <template #edge-pipe="edgeProps">
+          <PipeEdge v-bind="edgeProps" />
+        </template>
         <template #edge-info="edgeProps">
           <InfoLinkEdge v-bind="edgeProps" />
         </template>
