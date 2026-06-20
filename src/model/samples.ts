@@ -68,9 +68,9 @@ function model(name: string, nodes: ModelNode[], infoLinks: InformationLink[]): 
  * feedback: it just shows the substrate (Stock, Flow, Source, Sink).
  */
 function bathtub(): Model {
-  const source = makeCloud({ x: -278, y: -18 })
-  const water = makeStock({ x: -48, y: -20 }, "Water")
-  const sink = makeCloud({ x: 242, y: -18 })
+  const source = makeCloud({ x: -280, y: 0 })
+  const water = makeStock({ x: 0, y: 0 }, "Water")
+  const sink = makeCloud({ x: 280, y: 0 })
   const filling = makeFlow(
     midpoint(source.position, water.position),
     "filling",
@@ -90,8 +90,8 @@ function savings(): Model {
   // Source up-left, Balance down-right: the interest valve lands at their
   // midpoint (above Balance), so the `Balance → interest` link arcs back up as a
   // visible Reinforcing loop instead of overlapping the inflow pipe.
-  const source = makeCloud({ x: -250, y: -70 })
-  const balance = makeStock({ x: 110, y: 30 }, "Balance")
+  const source = makeCloud({ x: -240, y: -80 })
+  const balance = makeStock({ x: 120, y: 40 }, "Balance")
   const interest = makeFlow(
     midpoint(source.position, balance.position),
     "interest",
@@ -108,15 +108,15 @@ function savings(): Model {
  * (outflow) → Coffee has one `−` → Balancing: it settles toward room temperature.
  */
 function coffee(): Model {
-  const coffee = makeStock({ x: -200, y: -10 }, "Coffee")
-  const sink = makeCloud({ x: 190, y: -8 })
+  const coffee = makeStock({ x: -200, y: 0 }, "Coffee")
+  const sink = makeCloud({ x: 200, y: 0 })
   const heatLoss = makeFlow(
     midpoint(coffee.position, sink.position),
     "heat loss",
     coffee.id,
     sink.id,
   )
-  const room = makeConverter({ x: -29, y: -150 }, "room temperature")
+  const room = makeConverter({ x: 0, y: -160 }, "room temperature")
   return model(
     "Coffee cooling",
     [coffee, sink, heatLoss, room],
@@ -131,18 +131,17 @@ function coffee(): Model {
  * births (`+`), life expectancy lowers deaths (`−`).
  */
 function population(): Model {
-  const source = makeCloud({ x: -360, y: -8 })
-  const people = makeStock({ x: -48, y: -10 }, "Population")
-  const sink = makeCloud({ x: 250, y: -8 })
-  const births = makeFlow(
-    midpoint(source.position, people.position),
-    "births",
-    source.id,
-    people.id,
-  )
-  const deaths = makeFlow(midpoint(people.position, sink.position), "deaths", people.id, sink.id)
-  const fertility = makeConverter({ x: -204, y: -150 }, "fertility")
-  const lifeExpectancy = makeConverter({ x: 101, y: -150 }, "life expectancy")
+  // A grid-aligned cascade (20px grid): Source and both Converters stack in the left
+  // column, the Stock sits at the centre, and births → Population → deaths step down
+  // toward the Sink — so every Information Link lands in open space, not on a pipe.
+  // Valves are placed by hand, not at the midpoint, to hold the steps.
+  const source = makeCloud({ x: -360, y: -240 })
+  const fertility = makeConverter({ x: -360, y: -40 }, "fertility")
+  const lifeExpectancy = makeConverter({ x: -360, y: 240 }, "life expectancy")
+  const people = makeStock({ x: 0, y: 0 }, "Population")
+  const births = makeFlow({ x: -160, y: -160 }, "births", source.id, people.id)
+  const sink = makeCloud({ x: 360, y: 240 })
+  const deaths = makeFlow({ x: 160, y: 160 }, "deaths", people.id, sink.id)
   return model(
     "Population",
     [source, people, sink, births, deaths, fertility, lifeExpectancy],
@@ -164,13 +163,13 @@ function population(): Model {
  * the balancing loop without sitting on any cycle.
  */
 function limitsToGrowth(): Model {
-  const source = makeCloud({ x: -300, y: 0 })
+  const source = makeCloud({ x: -280, y: 0 })
   const yeast = makeStock({ x: 40, y: 0 }, "Yeast")
   const growth = makeFlow(midpoint(source.position, yeast.position), "growth", source.id, yeast.id)
   // crowding rides above the pipe; carrying capacity sits to its right so the
   // `capacity → crowding` link is a short horizontal hop along the top.
-  const crowding = makeConverter({ x: -40, y: -150 }, "crowding")
-  const capacity = makeConverter({ x: 170, y: -150 }, "carrying capacity")
+  const crowding = makeConverter({ x: -40, y: -160 }, "crowding")
+  const capacity = makeConverter({ x: 160, y: -160 }, "carrying capacity")
   return model(
     "Limits to growth",
     [source, yeast, growth, crowding, capacity],
@@ -275,7 +274,7 @@ function epidemic(): Model {
     infected.id,
     recovered.id,
   )
-  const infectivity = makeConverter({ x: -140, y: -150 }, "infectivity")
+  const infectivity = makeConverter({ x: -140, y: -160 }, "infectivity")
   return model(
     "Epidemic",
     [susceptible, infected, recovered, infection, recovery, infectivity],
@@ -304,7 +303,7 @@ function tragedyOfTheCommons(): Model {
   // Two symmetric herds: cattle enter from a Source on the outside, grass leaves
   // the Pasture downward to a Sink. The two `Pasture → growth` links are the weak
   // brake the trap overruns.
-  const sourceA = makeCloud({ x: -620, y: 0 })
+  const sourceA = makeCloud({ x: -640, y: 0 })
   const herdA = makeStock({ x: -360, y: 0 }, "Herd A")
   const growthA = makeFlow(
     midpoint(sourceA.position, herdA.position),
@@ -312,14 +311,14 @@ function tragedyOfTheCommons(): Model {
     sourceA.id,
     herdA.id,
   )
-  const sinkA = makeCloud({ x: -180, y: 220 })
+  const sinkA = makeCloud({ x: -200, y: 240 })
   const grazingA = makeFlow(
     midpoint(pasture.position, sinkA.position),
     "grazing A",
     pasture.id,
     sinkA.id,
   )
-  const sourceB = makeCloud({ x: 620, y: 0 })
+  const sourceB = makeCloud({ x: 640, y: 0 })
   const herdB = makeStock({ x: 360, y: 0 }, "Herd B")
   const growthB = makeFlow(
     midpoint(sourceB.position, herdB.position),
@@ -327,7 +326,7 @@ function tragedyOfTheCommons(): Model {
     sourceB.id,
     herdB.id,
   )
-  const sinkB = makeCloud({ x: 180, y: 220 })
+  const sinkB = makeCloud({ x: 200, y: 240 })
   const grazingB = makeFlow(
     midpoint(pasture.position, sinkB.position),
     "grazing B",
@@ -362,7 +361,7 @@ function escalation(): Model {
   // Source to its arsenal. The two cross-coupling links span the open centre and
   // cross there, where the R badge lands, so the whole loop reads at a glance.
   const blueSource = makeCloud({ x: -560, y: -120 })
-  const blueArsenal = makeStock({ x: 300, y: -120 }, "Blue arsenal")
+  const blueArsenal = makeStock({ x: 280, y: -120 }, "Blue arsenal")
   const blueBuildup = makeFlow(
     midpoint(blueSource.position, blueArsenal.position),
     "Blue buildup",
@@ -370,7 +369,7 @@ function escalation(): Model {
     blueArsenal.id,
   )
   const redSource = makeCloud({ x: -560, y: 120 })
-  const redArsenal = makeStock({ x: 300, y: 120 }, "Red arsenal")
+  const redArsenal = makeStock({ x: 280, y: 120 }, "Red arsenal")
   const redBuildup = makeFlow(
     midpoint(redSource.position, redArsenal.position),
     "Red buildup",
