@@ -134,7 +134,9 @@ const chart = computed(() => {
           aria-label="Playhead"
           @input="sim.seek(Number(($event.target as HTMLInputElement).value))"
         />
-        <span class="w-14 text-right font-mono text-xs tabular-nums text-base-content/60">
+        <span
+          class="w-24 shrink-0 whitespace-nowrap text-right font-mono text-xs tabular-nums text-base-content/60"
+        >
           t = {{ sim.currentTime ?? 0 }}
         </span>
       </div>
