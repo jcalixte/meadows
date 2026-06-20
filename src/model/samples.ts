@@ -102,25 +102,20 @@ function savings(): Model {
 }
 
 /**
- * Coffee cooling — the simplest Balancing loop, plus a Converter. Heat leaves the
- * cup faster the hotter it is (Coffee → [+] → heat loss) but slower the warmer
- * the room (room temperature → [−] → heat loss). The loop Coffee → heat loss →
- * (outflow) → Coffee has one `−` → Balancing: it settles toward room temperature.
+ * Coffee cooling — the simplest Balancing loop, plus a Converter. The cup cools
+ * faster the hotter it is (Coffee → [+] → cooling) but slower the warmer the room
+ * (room temperature → [−] → cooling). The loop Coffee → cooling → (outflow) →
+ * Coffee has one `−` → Balancing: it settles toward room temperature.
  */
 function coffee(): Model {
   const coffee = makeStock({ x: -200, y: 0 }, "Coffee")
   const sink = makeCloud({ x: 200, y: 0 })
-  const heatLoss = makeFlow(
-    midpoint(coffee.position, sink.position),
-    "heat loss",
-    coffee.id,
-    sink.id,
-  )
+  const cooling = makeFlow(midpoint(coffee.position, sink.position), "cooling", coffee.id, sink.id)
   const room = makeConverter({ x: 0, y: -160 }, "room temperature")
   return model(
     "Coffee cooling",
-    [coffee, sink, heatLoss, room],
-    [link(coffee, heatLoss, "+"), link(room, heatLoss, "-")],
+    [coffee, sink, cooling, room],
+    [link(coffee, cooling, "+"), link(room, cooling, "-")],
   )
 }
 
@@ -166,10 +161,10 @@ function limitsToGrowth(): Model {
   const source = makeCloud({ x: -280, y: 0 })
   const yeast = makeStock({ x: 40, y: 0 }, "Yeast")
   const growth = makeFlow(midpoint(source.position, yeast.position), "growth", source.id, yeast.id)
-  // crowding rides above the pipe; carrying capacity sits to its right so the
-  // `capacity → crowding` link is a short horizontal hop along the top.
+  // crowding rides above the pipe; carrying capacity stacks above the Source on the
+  // left, so the `capacity → crowding` link is a clean horizontal hop along the top.
+  const capacity = makeConverter({ x: -280, y: -160 }, "carrying capacity")
   const crowding = makeConverter({ x: -40, y: -160 }, "crowding")
-  const capacity = makeConverter({ x: 160, y: -160 }, "carrying capacity")
   return model(
     "Limits to growth",
     [source, yeast, growth, crowding, capacity],
