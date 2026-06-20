@@ -33,6 +33,14 @@
  *  11. Drift to low performance — a goal that erodes toward actual performance, so a
  *                                 Reinforcing loop ratchets both downward.
  *
+ * Last, the dynamic the book is named for, and the one the gallery has saved until a
+ * reader knows every piece it needs:
+ *
+ *  12. Overshoot and collapse   — a Reinforcing engine running on a *non-renewable*
+ *                                 Stock (the first with no inflow): it overshoots the
+ *                                 limit instead of settling at it, the dark twin of
+ *                                 "Limits to growth" — the ceiling erodes, so it crashes.
+ *
  * These are plain data built from the same tested constructors the store uses
  * (factory.ts), so every sample is a valid Model by construction. `build()`
  * mints fresh ids on each call, so loading a sample twice never collides.
@@ -571,6 +579,68 @@ function driftToLowPerformance(): Model {
   )
 }
 
+/**
+ * Overshoot and collapse — the dark twin of "Limits to growth". The same
+ * Reinforcing engine runs, but the limit here is a *non-renewable* Resource that
+ * only depletes: a Stock with no inflow, the first in the gallery. An economy
+ * (Capital) lives off it — extraction grows with both the Resource left and the
+ * Capital deployed (Resource, Capital → [+] → extraction), and the revenue is
+ * reinvested as new Capital (extraction → [+] → investment → Capital), so the loop
+ * Capital → extraction → investment → Capital carries no `−` → Reinforcing. Capital
+ * climbs and extraction accelerates, but every unit burned is gone for good, so the
+ * Resource crosses the break-even level, the engine starves, and depreciation
+ * (Capital → [+] → depreciation, a Balancing drain) takes Capital down: it peaks,
+ * then collapses. Contrast "Predator and prey", whose prey regrows and so settles
+ * into oscillation — a finite Resource cannot, so it overshoots and crashes instead.
+ */
+function overshootAndCollapse(): Model {
+  // Resource on the left drains only downward (no inflow). Capital on the right runs
+  // a full Source → investment → Capital → depreciation → Sink column. The two
+  // coupling links — Capital → extraction and extraction → investment — cross in the
+  // open centre, where the R badge lands.
+  const resource = makeStock({ x: -240, y: 0 }, "Resource")
+  resource.initialValue = 1000
+  const extractionSink = makeCloud({ x: -240, y: 360 })
+  const extraction = makeFlow({ x: -240, y: 160 }, "extraction", resource.id, extractionSink.id)
+  // extraction = factor × Resource × Capital (both `+`): more capital extracts
+  // faster, scarcer resource slower. The bilinear term the non-negative floor tames.
+  extraction.rule = { kind: "proportional", factor: 0.0004 }
+  const capital = makeStock({ x: 240, y: 0 }, "Capital")
+  capital.initialValue = 5
+  const investmentSource = makeCloud({ x: 240, y: -360 })
+  const investment = makeFlow({ x: 240, y: -160 }, "investment", investmentSource.id, capital.id)
+  // investment = factor × extraction (its one `+` input): the revenue reinvested —
+  // a Flow feeding a Flow, the edge that closes the Reinforcing loop through Capital.
+  investment.rule = { kind: "proportional", factor: 0.5 }
+  const depreciationSink = makeCloud({ x: 240, y: 360 })
+  const depreciation = makeFlow({ x: 240, y: 160 }, "depreciation", capital.id, depreciationSink.id)
+  // depreciation = factor × Capital (its `+` input): the Balancing drain that wins
+  // once the Resource can no longer feed investment.
+  depreciation.rule = { kind: "proportional", factor: 0.04 }
+  return model(
+    "Overshoot and collapse",
+    [
+      resource,
+      extractionSink,
+      extraction,
+      capital,
+      investmentSource,
+      investment,
+      depreciationSink,
+      depreciation,
+    ],
+    [
+      link(resource, extraction, "+"),
+      link(capital, extraction, "+"),
+      link(extraction, investment, "+"),
+      link(capital, depreciation, "+"),
+    ],
+    // Capital starts at 5, overshoots to ~250 by t≈39, and collapses back near its
+    // starting level by t=150 — the full boom-and-bust arc, no dead tail.
+    { start: 0, stop: 150, dt: 1 },
+  )
+}
+
 /** The gallery, ordered simplest first. */
 export const SAMPLES: Sample[] = [
   { title: "Bathtub", blurb: "A stock filled and drained — no feedback yet.", build: bathtub },
@@ -623,5 +693,10 @@ export const SAMPLES: Sample[] = [
     title: "Drift to low performance",
     blurb: "Goals erode toward actual: a Reinforcing slide downhill.",
     build: driftToLowPerformance,
+  },
+  {
+    title: "Overshoot and collapse",
+    blurb: "A growth engine burns a finite Resource: it peaks, then crashes.",
+    build: overshootAndCollapse,
   },
 ]
