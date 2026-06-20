@@ -6,6 +6,7 @@
  * dataTransfer on drag). Flows aren't placed here — they're drawn by connecting
  * two nodes (F2, next).
  */
+import { NODE_GLOSSARY } from "@/model/glossary"
 import { NODE_DND_MIME, type PlaceableKind } from "./palette-dnd"
 
 const emit = defineEmits<{ add: [kind: PlaceableKind] }>()
@@ -27,8 +28,10 @@ function onDragStart(event: DragEvent, kind: PlaceableKind): void {
       Add
     </span>
     <button
-      class="btn btn-ghost btn-sm cursor-grab justify-start gap-2 active:cursor-grabbing"
+      class="btn btn-ghost btn-sm tooltip tooltip-right cursor-grab justify-start gap-2 active:cursor-grabbing"
       draggable="true"
+      :data-tip="NODE_GLOSSARY.stock.short"
+      :aria-label="`Stock — ${NODE_GLOSSARY.stock.short}`"
       @click="emit('add', 'stock')"
       @dragstart="onDragStart($event, 'stock')"
     >
@@ -36,8 +39,10 @@ function onDragStart(event: DragEvent, kind: PlaceableKind): void {
       Stock
     </button>
     <button
-      class="btn btn-ghost btn-sm cursor-grab justify-start gap-2 active:cursor-grabbing"
+      class="btn btn-ghost btn-sm tooltip tooltip-right cursor-grab justify-start gap-2 active:cursor-grabbing"
       draggable="true"
+      :data-tip="NODE_GLOSSARY.converter.short"
+      :aria-label="`Converter — ${NODE_GLOSSARY.converter.short}`"
       @click="emit('add', 'converter')"
       @dragstart="onDragStart($event, 'converter')"
     >
