@@ -9,7 +9,16 @@
 @plugin "daisyui/theme" {
   name: "light";
   default: true;
-  --color-primary: #2e86de;
+  --color-primary: #ff9ff3;
+}
+
+/* DaisyUI's default (no data-theme) resolves to its *dark* theme via
+   prefers-color-scheme, with a selector (`:root:not([data-theme])`) that outranks
+   a custom light theme's `:where(:root)` — so overriding only the light theme
+   never reached the buttons. Force the brand primary across every theme. */
+:root {
+  --color-primary: #ff9ff3 !important;
+  --color-primary-content: #3d1f3a !important;
 }
 
 @theme {
