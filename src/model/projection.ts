@@ -11,8 +11,17 @@
  * Flow's references (ADR-0003); each Information Link contributes one "info"
  * edge carrying its polarity.
  */
-import type { Edge, Node } from "@vue-flow/core"
+import { type Edge, type EdgeMarker, MarkerType, type Node } from "@vue-flow/core"
 import type { Model, ModelNode, Polarity } from "./types"
+
+/**
+ * Open arrowhead drawn at the same stroke weight as the line it ends. Vue Flow
+ * renders the marker with markerUnits="strokeWidth" (so the head already scales
+ * with the edge) but downscales its 20-unit viewBox into a 12.5 marker box,
+ * thinning the chevron to 0.625× the line. strokeWidth 20/12.5 = 1.6 cancels
+ * that, leaving the head exactly as heavy as its line at any width.
+ */
+const ARROWHEAD: EdgeMarker = { type: MarkerType.Arrow, strokeWidth: 1.6 }
 
 /** Payload carried on every projected Vue Flow node: the domain node itself. */
 export interface NodeData {
@@ -72,7 +81,7 @@ export function projectEdges(model: Model): FlowGraphEdge[] {
       targetHandle: HANDLE_IN,
       data: { kind: "pipe" },
       style: { strokeWidth: "2.5px" },
-      markerEnd: "arrow",
+      markerEnd: ARROWHEAD,
     })
   }
 
@@ -88,7 +97,7 @@ export function projectEdges(model: Model): FlowGraphEdge[] {
       targetHandle: HANDLE_IN,
       data: { kind: "info", polarity: link.polarity },
       style: { strokeDasharray: "5 4" },
-      markerEnd: "arrow",
+      markerEnd: ARROWHEAD,
     })
   }
 
