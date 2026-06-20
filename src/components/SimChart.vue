@@ -57,7 +57,9 @@ function syncMarker(): void {
   }
   // bbox is in device pixels; the overlay is laid out in CSS pixels.
   const ratio = window.devicePixelRatio || 1
-  markerX.value = plot.valToPos(props.marker, "x")
+  // valToPos (CSS px) is relative to the plot area's left edge, but the overlay
+  // is positioned against the canvas, so add the left gutter (the y-axis width).
+  markerX.value = plot.bbox.left / ratio + plot.valToPos(props.marker, "x")
   markerTop.value = plot.bbox.top / ratio
   markerHeight.value = plot.bbox.height / ratio
 }
