@@ -6,10 +6,12 @@
  * wire, toggle polarity, or delete. Hovering a badge lights up that loop's nodes
  * and links via the shared highlight.
  *
- * Badges live in screen space: each loop's centroid (the average of its node
- * positions, in flow coords) is mapped through the live viewport transform so it
- * tracks pan/zoom, and colliding badges are stacked so overlapping loops stay
- * legible (the accepted cost of on-canvas badges).
+ * Badges live in screen space: each loop's centroid (the mean of its nodes'
+ * live centres, read straight from Vue Flow) is mapped through the viewport
+ * transform, so a badge tracks pan, zoom, and dragging a member node — the store
+ * only commits positions on drop, so reading it would lag a drag. Colliding
+ * badges are stacked so overlapping loops stay legible (the cost of on-canvas
+ * badges).
  */
 import { useVueFlow } from "@vue-flow/core"
 import { computed } from "vue"
@@ -18,7 +20,7 @@ import type { Loop } from "@/model/loops"
 import { useModelStore } from "@/store/model"
 
 const store = useModelStore()
-const { viewport } = useVueFlow("meadows")
+const { viewport, getNodes } = useVueFlow("meadows")
 const { highlight, clear } = useLoopHighlight()
 
 const nameOf = computed(() => {
@@ -34,24 +36,34 @@ interface Badge {
 }
 
 const badges = computed<Badge[]>(() => {
-  const positions = new Map(store.model.nodes.map((n) => [n.id, n.position]))
+  // Live node centres from Vue Flow (computedPosition updates during a drag).
+  const centres = new Map(
+    getNodes.value.map((n) => [
+      n.id,
+      {
+        x: n.computedPosition.x + n.dimensions.width / 2,
+        y: n.computedPosition.y + n.dimensions.height / 2,
+      },
+    ]),
+  )
   const { x: vx, y: vy, zoom } = viewport.value
   const placed: Badge[] = []
 
   for (const loop of store.loops) {
     let sx = 0
     let sy = 0
+    let count = 0
     for (const id of loop.nodeIds) {
-      const p = positions.get(id)
-      if (p) {
-        sx += p.x
-        sy += p.y
+      const c = centres.get(id)
+      if (c) {
+        sx += c.x
+        sy += c.y
+        count++
       }
     }
-    const n = loop.nodeIds.length || 1
-    // node positions are top-left; nudge toward node centre, then to screen.
-    const x = (sx / n + 24) * zoom + vx
-    let y = (sy / n + 18) * zoom + vy
+    if (count === 0) continue
+    const x = (sx / count) * zoom + vx
+    let y = (sy / count) * zoom + vy
     while (placed.some((b) => Math.abs(b.x - x) < 26 && Math.abs(b.y - y) < 26)) y += 26
     placed.push({ loop, x, y })
   }
