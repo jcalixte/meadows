@@ -24,7 +24,15 @@ import {
   nextName,
 } from "@/model/factory"
 import { detectLoops } from "@/model/loops"
-import type { ConverterNode, Model, ModelNode, Position, StockNode } from "@/model/types"
+import type {
+  ConverterNode,
+  Model,
+  ModelNode,
+  Position,
+  Rule,
+  SimSpec,
+  StockNode,
+} from "@/model/types"
 import { canConnect, intentFor } from "@/model/validation"
 
 /** Ring-buffer depth for undo (F9 target: ≥50 steps). */
@@ -94,6 +102,47 @@ export const useModelStore = defineStore("model", () => {
     if (!node || node.kind === "cloud") return
     record()
     node.name = name
+  }
+
+  /**
+   * Set (or clear) a Stock's initial value — the quantity the simulator starts
+   * from (ADR-0004). `undefined` un-equips it, sending the Model back to "not yet
+   * simulatable". No-op when unchanged, so a blur with no edit doesn't burn undo.
+   */
+  function setInitialValue(id: string, value: number | undefined): void {
+    const node = findNode(id)
+    if (!node || node.kind !== "stock" || node.initialValue === value) return
+    record()
+    if (value === undefined) delete node.initialValue
+    else node.initialValue = value
+  }
+
+  /**
+   * Set (or clear) how a Flow's rate or a Converter's value is computed (ADR-0004:
+   * one of the fixed rules, never a formula). No-op when unchanged.
+   */
+  function setRule(id: string, rule: Rule | undefined): void {
+    const node = findNode(id)
+    if (!node || (node.kind !== "flow" && node.kind !== "converter")) return
+    if (JSON.stringify(node.rule) === JSON.stringify(rule)) return
+    record()
+    if (rule === undefined) delete node.rule
+    else node.rule = rule
+  }
+
+  /** Set the run parameters (start / stop / dt). No-op when unchanged. */
+  function setSimSpec(spec: SimSpec): void {
+    const current = model.value.sim
+    if (
+      current &&
+      current.start === spec.start &&
+      current.stop === spec.stop &&
+      current.dt === spec.dt
+    ) {
+      return
+    }
+    record()
+    model.value.sim = spec
   }
 
   /**
@@ -229,6 +278,9 @@ export const useModelStore = defineStore("model", () => {
     beginInteraction,
     moveNode,
     renameNode,
+    setInitialValue,
+    setRule,
+    setSimSpec,
     removeNode,
     removeInfoLink,
     toggleLinkPolarity,

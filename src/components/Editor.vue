@@ -33,8 +33,10 @@ import { canConnect } from "@/model/validation"
 import { useModelStore } from "@/store/model"
 import { NODE_DND_MIME, type PlaceableKind } from "./palette-dnd"
 import GlossPanel from "./GlossPanel.vue"
+import Inspector from "./Inspector.vue"
 import LoopOverlay from "./LoopOverlay.vue"
 import Palette from "./Palette.vue"
+import ResultsPanel from "./ResultsPanel.vue"
 import InfoLinkEdge from "./edges/InfoLinkEdge.vue"
 import PipeEdge from "./edges/PipeEdge.vue"
 import CloudNode from "./nodes/CloudNode.vue"
@@ -47,6 +49,10 @@ const store = useModelStore()
 const graph = computed(() => project(store.model))
 const nodes = computed(() => graph.value.nodes)
 const edges = computed(() => graph.value.edges)
+
+// The simulation results panel (phase 2). Toggled from the header; the panel runs
+// the Model and recomputes reactively while open.
+const showResults = ref(false)
 
 // Explicit shared id: useVueFlow() runs here in the parent setup, before
 // <VueFlow> mounts. Pinning both to the same id guarantees they resolve to one
@@ -358,6 +364,13 @@ onBeforeUnmount(() => {
             </li>
           </ul>
         </div>
+        <button
+          class="btn btn-primary btn-sm"
+          :class="{ 'btn-active': showResults }"
+          @click="showResults = !showResults"
+        >
+          Simulate
+        </button>
         <button class="btn btn-ghost btn-sm" @click="exportModel">Export</button>
         <button class="btn btn-ghost btn-sm" @click="fileInput?.click()">Import</button>
         <input
@@ -420,6 +433,8 @@ onBeforeUnmount(() => {
       <Palette class="absolute top-3 left-3 z-20" @add="addNode" />
       <LoopOverlay />
       <GlossPanel />
+      <Inspector />
+      <ResultsPanel v-if="showResults" @close="showResults = false" />
 
       <!-- Self-dismissing teaching hint, e.g. when a Flow is dragged back onto its
            own Stock to "close the loop". Click to dismiss early; z-30 keeps it above
