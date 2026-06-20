@@ -33,13 +33,20 @@
  *  11. Drift to low performance — a goal that erodes toward actual performance, so a
  *                                 Reinforcing loop ratchets both downward.
  *
- * Last, the dynamic the book is named for, and the one the gallery has saved until a
+ * Next, the dynamic the book is named for, and the one the gallery has saved until a
  * reader knows every piece it needs:
  *
  *  12. Overshoot and collapse   — a Reinforcing engine running on a *non-renewable*
  *                                 Stock (the first with no inflow): it overshoots the
  *                                 limit instead of settling at it, the dark twin of
  *                                 "Limits to growth" — the ceiling erodes, so it crashes.
+ *
+ * Last, the language pointed at a live debate — a classic trap (Shifting the burden to
+ * the intervenor, ch. 5) wearing today's clothes:
+ *
+ *  13. AI deskilling spiral     — handing the burden of code quality to AI atrophies the
+ *                                 Expertise that holds quality up, so the team leans on AI
+ *                                 harder and Technical debt spirals: addiction, not a fix.
  *
  * These are plain data built from the same tested constructors the store uses
  * (factory.ts), so every sample is a valid Model by construction. `build()`
@@ -641,6 +648,90 @@ function overshootAndCollapse(): Model {
   )
 }
 
+/**
+ * AI deskilling spiral — a classic trap in today's clothes: "Shifting the burden to
+ * the intervenor" (Thinking in Systems, ch. 5), where leaning on an outside fixer
+ * atrophies your own capacity to solve the problem, so you depend on the fixer ever
+ * more. Here the intervenor is AI. Technical debt drives reliance on it (the more cruft
+ * and delivery pressure, the more you reach for the model: Technical debt → [+] → AI
+ * reliance); AI churns out plausible code that adds debt (AI reliance → [+] → debt
+ * accrual) and lets skills lapse (AI reliance → [+] → atrophy, draining Expertise); and
+ * a thinner-skilled team refactors less (Expertise → [+] → refactoring, the Balancing
+ * payoff that now weakens). The loop Technical debt → AI reliance → atrophy → Expertise
+ * → refactoring → Technical debt carries two `−` (the two outflows) → Reinforcing: the
+ * spiral. The hopeful brake is learning — practice pulling Expertise back toward its
+ * ceiling (skill ceiling → [+], Expertise → [−] → learning: a Balancing loop) — but
+ * tuned here it loses to the spiral. (Code quality and lead time aren't nodes: quality
+ * reads as the inverse of Technical debt, lead time as the inverse of Expertise;
+ * "model price" lives in the AI-reliance factor — cheaper models, higher reliance.)
+ */
+function aiDeskillingSpiral(): Model {
+  // Two lanes — Expertise on top, Technical debt below — each a full Source → inflow →
+  // Stock → outflow → Sink. The AI reliance Converter sits between them, reading the
+  // debt below and feeding both atrophy (top lane) and debt accrual: the couplings that
+  // close the Reinforcing spiral cross the open centre.
+  const skillCeiling = makeConverter({ x: -360, y: -300 }, "skill ceiling")
+  skillCeiling.rule = { kind: "constant", value: 100 }
+  const learningSource = makeCloud({ x: -540, y: -120 })
+  const expertise = makeStock({ x: -180, y: -120 }, "Expertise")
+  expertise.initialValue = 70
+  const learning = makeFlow({ x: -360, y: -120 }, "learning", learningSource.id, expertise.id)
+  // learning = factor × (skill ceiling − Expertise): practice pulls skill back up — the
+  // Balancing brake. The further from mastery, the harder you study.
+  learning.rule = { kind: "gap", factor: 0.04 }
+  const atrophySink = makeCloud({ x: 300, y: -120 })
+  const atrophy = makeFlow({ x: 80, y: -120 }, "atrophy", expertise.id, atrophySink.id)
+  // atrophy = factor × AI reliance: the more you offload to AI, the faster unused skills
+  // lapse — the side effect that makes this an addiction, not a fix.
+  atrophy.rule = { kind: "proportional", factor: 0.6 }
+  const accrualSource = makeCloud({ x: -540, y: 120 })
+  const debt = makeStock({ x: -180, y: 120 }, "Technical debt")
+  debt.initialValue = 20
+  const accrual = makeFlow({ x: -360, y: 120 }, "debt accrual", accrualSource.id, debt.id)
+  // debt accrual = factor × AI reliance: AI emits plausible code faster than anyone
+  // reviews it, so debt grows the more you lean on it.
+  accrual.rule = { kind: "proportional", factor: 0.9 }
+  const refactorSink = makeCloud({ x: 300, y: 120 })
+  const refactoring = makeFlow({ x: 80, y: 120 }, "refactoring", debt.id, refactorSink.id)
+  // refactoring = factor × Expertise × Technical debt: skilled teams pay debt down in
+  // proportion to how much there is — the Balancing payoff the spiral starves.
+  refactoring.rule = { kind: "proportional", factor: 0.0009 }
+  const reliance = makeConverter({ x: -180, y: 0 }, "AI reliance")
+  // AI reliance = factor × Technical debt: the factor is how cheap and available models
+  // are — lower model price, higher reliance per unit of debt.
+  reliance.rule = { kind: "proportional", factor: 0.1 }
+  return model(
+    "AI deskilling spiral",
+    [
+      skillCeiling,
+      learningSource,
+      expertise,
+      learning,
+      atrophySink,
+      atrophy,
+      accrualSource,
+      debt,
+      accrual,
+      refactorSink,
+      refactoring,
+      reliance,
+    ],
+    [
+      link(skillCeiling, learning, "+"),
+      link(expertise, learning, "-"),
+      link(reliance, atrophy, "+"),
+      link(debt, reliance, "+"),
+      link(reliance, accrual, "+"),
+      link(expertise, refactoring, "+"),
+      link(debt, refactoring, "+"),
+    ],
+    // Expertise slides 70 → ~6 and Technical debt spirals 20 → ~150 over the window —
+    // the Reinforcing loop clearly taking off, stopped (like "Escalation") before it
+    // runs away off-chart.
+    { start: 0, stop: 50, dt: 1 },
+  )
+}
+
 /** The gallery, ordered simplest first. */
 export const SAMPLES: Sample[] = [
   { title: "Bathtub", blurb: "A stock filled and drained — no feedback yet.", build: bathtub },
@@ -698,5 +789,10 @@ export const SAMPLES: Sample[] = [
     title: "Overshoot and collapse",
     blurb: "A growth engine burns a finite Resource: it peaks, then crashes.",
     build: overshootAndCollapse,
+  },
+  {
+    title: "AI deskilling spiral",
+    blurb: "Leaning on AI to hold quality erodes the expertise that holds it: shifting the burden.",
+    build: aiDeskillingSpiral,
   },
 ]
