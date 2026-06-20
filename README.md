@@ -22,6 +22,8 @@ Deployed at https://meadows.apoena.dev
   - [ADR-0004](./docs/adr/0004-rate-rules-not-formulas.md) — simulation behaviour
     comes from a small fixed vocabulary of rules over Information Links, not
     free-form formulas.
+  - [ADR-0005](./docs/adr/0005-uplot-behaviour-chart.md) — uPlot draws the
+    behaviour-over-time chart; a charting dependency that earns its keep.
 
 ## Stack
 
