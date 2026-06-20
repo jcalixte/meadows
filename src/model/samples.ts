@@ -21,13 +21,17 @@
  *   6. Predator and prey — two coupled Stocks whose interlocking loops oscillate.
  *   7. Epidemic          — a chain of Stocks joined by Stock→Stock Flows: no clouds.
  *
- * Last, two of Donella Meadows' system *traps* — structures that reliably misbehave
+ * Last, four of Donella Meadows' system *traps* — structures that reliably misbehave
  * (Thinking in Systems, ch. 5), to contrast the healthy dynamics above:
  *
- *   8. Tragedy of the commons — competing Reinforcing loops drain a shared Stock
- *                               faster than its weak, shared Balancing brake reacts.
- *   9. Escalation             — a single Reinforcing loop spanning two Stocks, with
- *                               no brake in the structure: an arms race.
+ *   8. Tragedy of the commons   — competing Reinforcing loops drain a shared Stock
+ *                                 faster than its weak, shared Balancing brake reacts.
+ *   9. Escalation               — a single Reinforcing loop spanning two Stocks, with
+ *                                 no brake in the structure: an arms race.
+ *  10. Fixes that fail          — a fix drains the symptom Stock (B) while its side
+ *                                 effect refills it (R): the cure feeds the disease.
+ *  11. Drift to low performance — a goal that erodes toward actual performance, so a
+ *                                 Reinforcing loop ratchets both downward.
  *
  * These are plain data built from the same tested constructors the store uses
  * (factory.ts), so every sample is a valid Model by construction. `build()`
@@ -188,11 +192,13 @@ function limitsToGrowth(): Model {
  * around it is what makes the two populations oscillate.
  */
 function predatorPrey(): Model {
-  // Rabbits run along the top row, foxes along a lower row, so the two long
-  // coupling links cross in the open space between the rows.
-  const preySource = makeCloud({ x: -520, y: 0 })
-  const rabbits = makeStock({ x: -260, y: 0 }, "Rabbits")
-  const preySink = makeCloud({ x: 0, y: 0 })
+  // Two aligned rows flowing left→right — Rabbits on top, Foxes below — each a full
+  // Source → birth → Stock → outflow → Sink lane. The two coupling links (Rabbits →
+  // fox births, Foxes → predation) run as clear diagonals between the rows, so the
+  // cross-stock loop traces a circuit through the open centre.
+  const preySource = makeCloud({ x: -480, y: -140 })
+  const rabbits = makeStock({ x: -80, y: -140 }, "Rabbits")
+  const preySink = makeCloud({ x: 320, y: -140 })
   const rabbitBirths = makeFlow(
     midpoint(preySource.position, rabbits.position),
     "rabbit births",
@@ -205,9 +211,9 @@ function predatorPrey(): Model {
     rabbits.id,
     preySink.id,
   )
-  const foxSource = makeCloud({ x: 120, y: 220 })
-  const foxes = makeStock({ x: 380, y: 220 }, "Foxes")
-  const foxSink = makeCloud({ x: 640, y: 220 })
+  const foxSource = makeCloud({ x: -480, y: 140 })
+  const foxes = makeStock({ x: -80, y: 140 }, "Foxes")
+  const foxSink = makeCloud({ x: 320, y: 140 })
   const foxBirths = makeFlow(
     midpoint(foxSource.position, foxes.position),
     "fox births",
@@ -352,28 +358,99 @@ function tragedyOfTheCommons(): Model {
  * into oscillation instead of exploding.)
  */
 function escalation(): Model {
-  // Both arsenals sit inboard with their Sources outside; the two links crossing
-  // the centre are the escalation loop.
-  const redSource = makeCloud({ x: -520, y: 0 })
-  const redArsenal = makeStock({ x: -260, y: 0 }, "Red arsenal")
-  const redBuildup = makeFlow(
-    midpoint(redSource.position, redArsenal.position),
-    "Red buildup",
-    redSource.id,
-    redArsenal.id,
-  )
-  const blueSource = makeCloud({ x: 520, y: 0 })
-  const blueArsenal = makeStock({ x: 260, y: 0 }, "Blue arsenal")
+  // Two parallel rows — Blue on top, Red below — each flowing left→right from a
+  // Source to its arsenal. The two cross-coupling links span the open centre and
+  // cross there, where the R badge lands, so the whole loop reads at a glance.
+  const blueSource = makeCloud({ x: -560, y: -120 })
+  const blueArsenal = makeStock({ x: 300, y: -120 }, "Blue arsenal")
   const blueBuildup = makeFlow(
     midpoint(blueSource.position, blueArsenal.position),
     "Blue buildup",
     blueSource.id,
     blueArsenal.id,
   )
+  const redSource = makeCloud({ x: -560, y: 120 })
+  const redArsenal = makeStock({ x: 300, y: 120 }, "Red arsenal")
+  const redBuildup = makeFlow(
+    midpoint(redSource.position, redArsenal.position),
+    "Red buildup",
+    redSource.id,
+    redArsenal.id,
+  )
   return model(
     "Escalation",
-    [redSource, redArsenal, redBuildup, blueSource, blueArsenal, blueBuildup],
+    [blueSource, blueArsenal, blueBuildup, redSource, redArsenal, redBuildup],
     [link(blueArsenal, redBuildup, "+"), link(redArsenal, blueBuildup, "+")],
+  )
+}
+
+/**
+ * Fixes that fail — the archetype where a quick fix relieves a symptom but feeds it
+ * through a side effect, so the symptom returns and the fix is reapplied for ever.
+ * High Congestion prompts road building, and the new capacity drains it (Congestion
+ * → [+] → road building, an outflow: a Balancing fix). But roads also induce driving
+ * (road building → [+] → driving), and that extra traffic refills Congestion — the
+ * loop Congestion → road building → driving → Congestion carries no `−`, so it is
+ * Reinforcing: the cure feeds the disease, and you cannot build your way out of
+ * traffic.
+ */
+function fixesThatFail(): Model {
+  // Both flow valves share the left column (x = -120) so the backfire link
+  // road building → driving drops as a clean vertical, not a curl. Congestion sits
+  // on the right at driving's height; its road-building outflow runs up-left to the
+  // valve and on to the Sink, so the Reinforcing loop reads as the left edge plus
+  // the diagonal back to Congestion. Placed by hand, not midpoint, to hold the column.
+  const source = makeCloud({ x: -420, y: 120 })
+  const congestion = makeStock({ x: 300, y: 120 }, "Congestion")
+  const driving = makeFlow({ x: -120, y: 120 }, "driving", source.id, congestion.id)
+  const sink = makeCloud({ x: 300, y: -160 })
+  const roadBuilding = makeFlow({ x: -120, y: -160 }, "road building", congestion.id, sink.id)
+  return model(
+    "Fixes that fail",
+    [source, congestion, driving, sink, roadBuilding],
+    [link(congestion, roadBuilding, "+"), link(roadBuilding, driving, "+")],
+  )
+}
+
+/**
+ * Drift to low performance — the eroding-goals trap. The Standard you hold yourself
+ * to is not fixed: it slips toward whatever you are actually delivering. Improvement
+ * is driven by the gap (Standard → [+] and Performance → [−] → improvement), and so
+ * is slippage of the Standard (Standard → [+] and Performance → [−] → slippage). The
+ * two local Balancing loops look healthy, but together they close a Reinforcing
+ * spiral — Standard → improvement → Performance → slippage → Standard, two `−` → R:
+ * let Performance dip and the Standard follows it down, easing the gap, easing the
+ * effort, so Performance drifts lower still. That R badge is the trap.
+ */
+function driftToLowPerformance(): Model {
+  // Performance sits low-left (fed by improvement from a Source); Standard sits
+  // high-right (drained by slippage to a Sink). The two long links that close the
+  // Reinforcing spiral cross in the open centre, where the R badge lands.
+  const source = makeCloud({ x: -560, y: 120 })
+  const performance = makeStock({ x: -160, y: 120 }, "Performance")
+  const improvement = makeFlow(
+    midpoint(source.position, performance.position),
+    "improvement",
+    source.id,
+    performance.id,
+  )
+  const standard = makeStock({ x: 160, y: -120 }, "Standard")
+  const sink = makeCloud({ x: 560, y: -120 })
+  const slippage = makeFlow(
+    midpoint(standard.position, sink.position),
+    "slippage",
+    standard.id,
+    sink.id,
+  )
+  return model(
+    "Drift to low performance",
+    [source, performance, improvement, standard, sink, slippage],
+    [
+      link(standard, improvement, "+"),
+      link(performance, improvement, "-"),
+      link(standard, slippage, "+"),
+      link(performance, slippage, "-"),
+    ],
   )
 }
 
@@ -419,5 +496,15 @@ export const SAMPLES: Sample[] = [
     title: "Escalation",
     blurb: "An arms race: one Reinforcing loop spanning two Stocks.",
     build: escalation,
+  },
+  {
+    title: "Fixes that fail",
+    blurb: "Road building eases congestion (B) but induces the traffic that refills it (R).",
+    build: fixesThatFail,
+  },
+  {
+    title: "Drift to low performance",
+    blurb: "Goals erode toward actual: a Reinforcing slide downhill.",
+    build: driftToLowPerformance,
   },
 ]
