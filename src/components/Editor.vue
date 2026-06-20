@@ -349,7 +349,28 @@ onBeforeUnmount(() => {
 <template>
   <div class="flex h-screen flex-col bg-base-200">
     <header class="flex items-center gap-3 border-b border-base-300 bg-base-100 px-4 py-2">
-      <img src="/favicon.svg" alt="" class="size-6" />
+      <!-- Inlined favicon so the logo strokes with the theme primary (currentColor
+           via text-primary); an external <img> can't read the theme var. -->
+      <svg
+        class="size-6 text-primary"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        aria-hidden="true"
+      >
+        <path d="M14 20a2 2 0 1 0 -4 0a2 2 0 0 0 4 0" />
+        <path d="M14 4a2 2 0 1 0 -4 0a2 2 0 0 0 4 0" />
+        <path d="M6 12a2 2 0 1 0 -4 0a2 2 0 0 0 4 0" />
+        <path d="M22 12a2 2 0 1 0 -4 0a2 2 0 0 0 4 0" />
+        <path d="M14 12a2 2 0 1 0 -4 0a2 2 0 0 0 4 0" />
+        <path d="M6 12h4" />
+        <path d="M14 12h4" />
+        <path d="M12 6v4" />
+        <path d="M12 14v4" />
+      </svg>
       <h1 class="text-lg font-semibold">meadows</h1>
       <span class="text-sm text-base-content/50">
         {{ store.nodeCount }} {{ store.nodeCount === 1 ? "element" : "elements" }}
