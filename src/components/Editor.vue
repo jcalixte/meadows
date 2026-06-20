@@ -24,7 +24,7 @@ import {
   VueFlow,
   type XYPosition,
 } from "@vue-flow/core"
-import { computed, onBeforeUnmount, onMounted, useTemplateRef } from "vue"
+import { computed, onBeforeUnmount, onMounted, ref, useTemplateRef } from "vue"
 import { useAutosave } from "@/composables/useAutosave"
 import { parseModel, serializeModel } from "@/model/io"
 import { project } from "@/model/projection"
@@ -114,16 +114,51 @@ onError((err) => {
 // so validating projected edges would drop every pipe-out (Vue Flow EDGE_INVALID).
 function isValidConnection(connection: Connection): boolean {
   if ("id" in connection) return true
-  return canConnect(store.model, connection.source, connection.target)
+  const ok = canConnect(store.model, connection.source, connection.target)
+  // Remember the latest *refused* close-the-loop attempt so the release handler
+  // can explain it. Overwrite on every candidate (clearing when valid) so this
+  // reflects the handle we actually let go on, not one we merely passed over.
+  pendingLoopHint = ok ? null : loopClosureHint(connection.source, connection.target)
+  return ok
+}
+
+/**
+ * The message for dragging a Flow back onto a Stock it already touches — the
+ * "close the loop by hand" gesture. The drop is refused (an Information Link
+ * never targets a Stock; Stocks change only via Flows, ADR-0001), but the loop
+ * is already there: the Flow's own pipe *is* the link back. Naming that turns a
+ * dead-end gesture into the lesson (F4). Returns null for any other refusal,
+ * which stays silent.
+ */
+function loopClosureHint(sourceId: string, targetId: string): string | null {
+  const flow = store.model.nodes.find((node) => node.id === sourceId)
+  if (flow?.kind !== "flow") return null
+  const stock = store.model.nodes.find((node) => node.id === targetId)
+  if (stock?.kind !== "stock") return null
+  if (flow.source !== stock.id && flow.target !== stock.id) return null
+  const direction = flow.source === stock.id ? "out of" : "into"
+  return `${flow.name} already flows ${direction} ${stock.name} — that pipe is the link back, so the loop is already there.`
+}
+
+// A transient, self-dismissing teaching hint shown over the canvas (F4).
+const hint = ref<string | null>(null)
+let hintTimer: ReturnType<typeof setTimeout> | undefined
+function showHint(message: string): void {
+  hint.value = message
+  clearTimeout(hintTimer)
+  hintTimer = setTimeout(() => (hint.value = null), 6000)
 }
 
 // Remember the drag's source so releasing on empty canvas can open onto a Cloud.
 let connectSource: string | null = null
 let connectionMade = false
+// Set by isValidConnection when the live gesture is a refused loop-closure.
+let pendingLoopHint: string | null = null
 
 onConnectStart((params: OnConnectStartParams) => {
   connectSource = params.handleType === "source" ? (params.nodeId ?? null) : null
   connectionMade = false
+  pendingLoopHint = null
 })
 
 onConnect((connection) => {
@@ -132,11 +167,18 @@ onConnect((connection) => {
 })
 
 onConnectEnd((event) => {
-  if (!connectionMade && connectSource && event) {
-    const point = pointerPosition(event)
-    if (point) store.connectToNewCloud(connectSource, screenToFlow(point.x, point.y))
+  if (!connectionMade) {
+    // A refused loop-closure and an empty-canvas open are mutually exclusive
+    // (the former needs a Flow source, the latter a Stock source), so prefer the
+    // explanation when we have one.
+    if (pendingLoopHint) showHint(pendingLoopHint)
+    else if (connectSource && event) {
+      const point = pointerPosition(event)
+      if (point) store.connectToNewCloud(connectSource, screenToFlow(point.x, point.y))
+    }
   }
   connectSource = null
+  pendingLoopHint = null
 })
 
 /** clientX/clientY from a mouse or touch end event. */
@@ -286,7 +328,10 @@ function onKeydown(event: KeyboardEvent): void {
 }
 
 onMounted(() => window.addEventListener("keydown", onKeydown))
-onBeforeUnmount(() => window.removeEventListener("keydown", onKeydown))
+onBeforeUnmount(() => {
+  window.removeEventListener("keydown", onKeydown)
+  clearTimeout(hintTimer)
+})
 </script>
 
 <template>
@@ -369,6 +414,23 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onKeydown))
       <Palette class="absolute top-3 left-3 z-20" @add="addNode" />
       <LoopOverlay />
       <GlossPanel />
+
+      <!-- Self-dismissing teaching hint, e.g. when a Flow is dragged back onto its
+           own Stock to "close the loop". Click to dismiss early; z-30 keeps it above
+           the palette and badge overlay. role=status announces it politely. -->
+      <div v-if="hint" class="toast toast-center toast-bottom z-30">
+        <div role="status" class="alert alert-info max-w-sm text-left shadow-lg">
+          <span>{{ hint }}</span>
+          <button
+            type="button"
+            class="btn btn-circle btn-ghost btn-xs"
+            aria-label="Dismiss"
+            @click="hint = null"
+          >
+            ✕
+          </button>
+        </div>
+      </div>
     </div>
   </div>
 </template>
