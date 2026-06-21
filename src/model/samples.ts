@@ -54,6 +54,16 @@
  *                                 Expertise that holds quality up, so the team leans on AI
  *                                 harder and Technical debt spirals: addiction, not a fix.
  *
+ * And a mechanical coda — the gallery's one *hard* ceiling, to contrast the emergent
+ * ones (above all "Limits to growth"):
+ *
+ *  15. Bathtub with an overflow — the tap runs flat out (a Constant inflow that never
+ *                                 reads the level) and a spillway carries whatever rises
+ *                                 past the brim into a second Stock, the floor. The only
+ *                                 model on the `overflow` rule — a one-sided Gap, the
+ *                                 threshold the smooth rules can't draw — so here the
+ *                                 ceiling is *declared*, not emergent.
+ *
  * These are plain data built from the same tested constructors the store uses
  * (factory.ts), so every sample is a valid Model by construction. `build()`
  * mints fresh ids on each call, so loading a sample twice never collides.
@@ -1343,6 +1353,78 @@ function aiDeskillingSpiral(): Model {
   )
 }
 
+/**
+ * Bathtub with an overflow — the bathtub given a hard ceiling the honest way. The tap
+ * keeps running flat out (filling stays a Constant; it never reads the level), and a
+ * spillway carries off whatever rises past the brim: overflow = max(0, factor ×
+ * (Water − capacity)). That `overflow` rule is a one-sided Gap — shut until Water passes
+ * the `−` threshold (capacity), then draining the excess into a second Stock, the Floor.
+ * The loop Water → overflow → Water carries one `−` (the outflow) → Balancing, so Water
+ * climbs in a straight line, then plateaus just above the brim — a weir needs a little
+ * head of water to discharge — while the Floor goes on filling. The equilibrium comes
+ * from the *spill*, not from the inflow easing off: the counterpoint to a float valve,
+ * which throttles the inflow instead, and to "Limits to growth", whose ceiling emerges.
+ */
+function bathtubOverflow(): Model {
+  const source = makeCloud({ x: -280, y: 0 })
+  const water = makeStock({ x: 0, y: 0 }, "Water")
+  water.initialValue = 20
+  water.unit = "L"
+  water.description =
+    "The water level — the tap fills it in a straight line, then it holds just above the brim as the overflow carries off everything extra."
+  const filling = makeFlow(
+    midpoint(source.position, water.position),
+    "filling",
+    source.id,
+    water.id,
+  )
+  // A constant tap — it never reads the level, so it keeps pouring even at the brim.
+  // The ceiling comes from the overflow below, not from the inflow easing off.
+  filling.rule = { kind: "constant", value: 5 }
+  filling.description =
+    "A constant 5 L/step from the tap (the Source cloud), running flat out. It never throttles — the ceiling is the overflow's doing, not the tap's."
+  const floor = makeStock({ x: 0, y: 240 }, "Floor")
+  floor.initialValue = 0
+  floor.unit = "L"
+  floor.description =
+    "Water spilled onto the floor — the second Stock the overflow collects in. Empty until the tub brims, then it fills at the spill rate."
+  const overflow = makeFlow(
+    midpoint(water.position, floor.position),
+    "overflow",
+    water.id,
+    floor.id,
+  )
+  // overflow = max(0, 1 × (Water − capacity)): shut below the brim, spilling the excess
+  // above it. factor 1 at dt 1 settles in a step without oscillating; the level rides a
+  // touch over capacity — the head a spillway needs to discharge its inflow.
+  overflow.rule = { kind: "overflow", factor: 1 }
+  overflow.description =
+    "The spillway, max(0, Water − capacity): nothing while the tub is below the brim, then it carries off the excess — the Balancing drain that holds the level."
+  const capacity = makeConverter({ x: 240, y: 120 }, "capacity")
+  capacity.rule = { kind: "constant", value: 100 }
+  capacity.description =
+    "The tub's brim (a fixed 100 L) — the threshold the overflow opens above; the level holds just over it."
+  return model(
+    "Bathtub with an overflow",
+    [source, water, filling, floor, overflow, capacity],
+    [
+      link(
+        water,
+        overflow,
+        "+",
+        "Water is the level in the overflow rule: the higher it rises past the brim, the harder it spills. With the outflow, this closes the Balancing loop that holds the level.",
+      ),
+      link(
+        capacity,
+        overflow,
+        "-",
+        "Capacity is the threshold the spill opens above (the − input): a higher brim → less spill at the same level.",
+      ),
+    ],
+    { start: 0, stop: 40, dt: 1 },
+  )
+}
+
 /** The gallery, ordered simplest first. */
 export const SAMPLES: Sample[] = [
   { title: "Bathtub", blurb: "A stock filled and drained — no feedback yet.", build: bathtub },
@@ -1410,5 +1492,10 @@ export const SAMPLES: Sample[] = [
     title: "AI deskilling spiral",
     blurb: "Leaning on AI to hold quality erodes the expertise that holds it: shifting the burden.",
     build: aiDeskillingSpiral,
+  },
+  {
+    title: "Bathtub with an overflow",
+    blurb: "A flat-out tap and a spillway: the excess spills to a second Stock and the level holds.",
+    build: bathtubOverflow,
   },
 ]
