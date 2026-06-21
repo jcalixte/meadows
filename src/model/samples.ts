@@ -639,7 +639,7 @@ function overshootAndCollapse(): Model {
   const naturalDeaths = makeFlow({ x: -580, y: 180 }, "natural deaths", fish.id, deathSink.id)
   // natural deaths = factor × Fish (linear): the Balancing drain that *wins* below the
   // Allee threshold, where ~Fish² spawning can no longer keep up — and extinction follows.
-  naturalDeaths.rule = { kind: "proportional", factor: 0.06 }
+  naturalDeaths.rule = { kind: "proportional", factor: 0.01 }
   const crowdSink = makeCloud({ x: -420, y: 320 })
   const crowdingDeaths = makeFlow({ x: -420, y: 160 }, "crowding deaths", fish.id, crowdSink.id)
   // crowding deaths = factor × Fish × crowding (~Fish³): the steep Balancing ceiling
@@ -696,9 +696,10 @@ function overshootAndCollapse(): Model {
       link(catching, fleetGrowth, "+"),
       link(boats, scrapping, "+"),
     ],
-    // Fish hold near carrying capacity (1000) while the fleet compounds, cross the Allee
-    // threshold (~200) around t≈40 as the catch overshoots, then go extinct and stay
-    // there; Boats overshoot to ~450 (t≈40) and collapse back near their start by t=150.
+    // Fish drift up toward carrying capacity (~1170) while the fleet compounds, then the
+    // catch overshoots the renewal rate and pulls them past the Allee threshold (~30) at
+    // t≈43, after which they go extinct and stay there; Boats overshoot to ~700 (t≈37)
+    // and collapse back near their start by t=150.
     { start: 0, stop: 150, dt: 1 },
   )
 }
