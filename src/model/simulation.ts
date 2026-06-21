@@ -107,6 +107,19 @@ function evalRule(rule: Rule, links: InformationLink[], valueOf: (id: string) =>
         rule.factor * ((level ? valueOf(level.source) : 0) - (target ? valueOf(target.source) : 0))
       )
     }
+    case "overflow": {
+      // max(0, factor × (level − threshold)): a one-sided gap. The `+` input is the
+      // level, the `−` the threshold; it stays shut until the level passes it, so an
+      // overflow Flow spills only the excess. Clamping at 0 is what stops it running
+      // backwards below the threshold — gap can't, by design (it's bidirectional).
+      const level = links.find((link) => link.polarity === "+")
+      const threshold = links.find((link) => link.polarity === "-")
+      return Math.max(
+        0,
+        rule.factor *
+          ((level ? valueOf(level.source) : 0) - (threshold ? valueOf(threshold.source) : 0)),
+      )
+    }
   }
 }
 

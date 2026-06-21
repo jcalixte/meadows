@@ -115,6 +115,8 @@ const RULE_HINT: Record<Rule["kind"], string> = {
   constant: "A fixed number — no inputs.",
   proportional: "rate = factor × its “+” inputs.",
   gap: "rate = factor × (level − target): the “+” input is the level, the “−” the target.",
+  overflow:
+    "rate = max(0, factor × (level − threshold)): spills only once the “+” level passes the “−” threshold.",
 }
 </script>
 
@@ -167,6 +169,7 @@ const RULE_HINT: Record<Rule["kind"], string> = {
             <option value="constant">Constant</option>
             <option value="proportional">Proportional</option>
             <option value="gap">Gap</option>
+            <option value="overflow">Overflow</option>
           </select>
         </label>
 

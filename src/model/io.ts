@@ -55,7 +55,8 @@ function isPolarity(value: unknown): value is Polarity {
 function isRule(value: unknown): value is Rule {
   if (!isObject(value)) return false
   if (value.kind === "constant") return isFiniteNumber(value.value)
-  if (value.kind === "proportional" || value.kind === "gap") return isFiniteNumber(value.factor)
+  if (value.kind === "proportional" || value.kind === "gap" || value.kind === "overflow")
+    return isFiniteNumber(value.factor)
   return false
 }
 

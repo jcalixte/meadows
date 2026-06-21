@@ -42,11 +42,15 @@ export interface Position {
  *                     (→ exponential growth/decay)
  *  - `gap`          — `factor × (level − target)`, where the `+` input is the
  *                     level and the `−` input the target. (→ goal-seeking)
+ *  - `overflow`     — `max(0, factor × (level − threshold))`: a one-sided `gap`
+ *                     that only fires once the `+` level exceeds the `−`
+ *                     threshold. (→ a spillway / hard ceiling)
  */
 export type Rule =
   | { kind: "constant"; value: number }
   | { kind: "proportional"; factor: number }
   | { kind: "gap"; factor: number }
+  | { kind: "overflow"; factor: number }
 
 /**
  * The run parameters for a simulation: integrate from `start` to `stop` in steps
