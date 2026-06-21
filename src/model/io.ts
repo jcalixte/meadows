@@ -99,6 +99,14 @@ function nodeError(value: unknown, index: number): string | null {
   ) {
     return `${at}.rule must be a valid rule (constant/proportional/gap)`
   }
+  // The selection-time rationale (display only); any named node may carry one.
+  if (
+    kind !== "cloud" &&
+    value.description !== undefined &&
+    typeof value.description !== "string"
+  ) {
+    return `${at}.description must be a string`
+  }
   return null
 }
 
@@ -110,6 +118,9 @@ function linkError(value: unknown, index: number): string | null {
   if (typeof value.source !== "string") return `${at}.source must be a string`
   if (typeof value.target !== "string") return `${at}.target must be a string`
   if (!isPolarity(value.polarity)) return `${at}.polarity must be "+" or "-"`
+  if (value.description !== undefined && typeof value.description !== "string") {
+    return `${at}.description must be a string`
+  }
   return null
 }
 

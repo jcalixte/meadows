@@ -78,6 +78,8 @@ export interface StockNode extends BaseNode {
   initialValue?: number
   /** Unit of the quantity, e.g. "°C", "people", "$" — shown beside the value (display only). */
   unit?: string
+  /** Why this Stock exists in *this* model — a free-text note surfaced on selection (display only). */
+  description?: string
 }
 
 /**
@@ -95,6 +97,8 @@ export interface FlowNode extends BaseNode {
   target: string
   /** How its rate is computed each instant (ADR-0004). Optional in the diagram phase. */
   rule?: Rule
+  /** Why this Flow exists in *this* model — a free-text note surfaced on selection (display only). */
+  description?: string
 }
 
 /**
@@ -106,6 +110,8 @@ export interface ConverterNode extends BaseNode {
   name: string
   /** How its value is computed each instant (ADR-0004). Optional in the diagram phase. */
   rule?: Rule
+  /** Why this Converter exists in *this* model — a free-text note surfaced on selection (display only). */
+  description?: string
 }
 
 /**
@@ -131,6 +137,8 @@ export interface InformationLink {
   /** Target node id — a Flow or Converter, never a Stock (ADR-0001). */
   target: string
   polarity: Polarity
+  /** Why this link exists in *this* model — a free-text note surfaced on selection (display only). */
+  description?: string
 }
 
 /** One saved document: the unit of save / export / reopen. */

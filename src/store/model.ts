@@ -129,6 +129,28 @@ export const useModelStore = defineStore("model", () => {
   }
 
   /**
+   * Set (or clear) the free-text description on a named node or an Information
+   * Link — the "why this element exists" note surfaced on selection. Empty
+   * clears it; no-op when unchanged, so a blur with no edit doesn't burn undo.
+   */
+  function setDescription(id: string, text: string): void {
+    const next = text.trim() || undefined
+    const node = findNode(id)
+    if (node && node.kind !== "cloud") {
+      if (node.description === next) return
+      record()
+      if (next === undefined) delete node.description
+      else node.description = next
+      return
+    }
+    const link = model.value.infoLinks.find((l) => l.id === id)
+    if (!link || link.description === next) return
+    record()
+    if (next === undefined) delete link.description
+    else link.description = next
+  }
+
+  /**
    * Set (or clear) how a Flow's rate or a Converter's value is computed (ADR-0004:
    * one of the fixed rules, never a formula). No-op when unchanged.
    */
@@ -291,6 +313,7 @@ export const useModelStore = defineStore("model", () => {
     renameNode,
     setInitialValue,
     setUnit,
+    setDescription,
     setRule,
     setSimSpec,
     removeNode,
