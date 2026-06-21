@@ -30,7 +30,8 @@
  *                                 no brake in the structure: an arms race.
  *  10. Fixes that fail          — a fix drains the symptom Stock (B) while its side
  *                                 effect refills it (R): the cure feeds the disease.
- *  11. Drift to low performance — a goal that erodes toward actual performance, so a
+ *  11. Drift to low performance — a goal that erodes toward actual performance, so the
+ *                                 effort it drives never overcomes a steady decay: a
  *                                 Reinforcing loop ratchets both downward.
  *
  * Next, the dynamic the book is named for, and the one the gallery has saved until a
@@ -536,22 +537,27 @@ function fixesThatFail(): Model {
 }
 
 /**
- * Drift to low performance — the eroding-goals trap. The Standard you hold yourself
- * to is not fixed: it slips toward whatever you are actually delivering. Improvement
- * is driven by the gap (Standard → [+] and Performance → [−] → improvement), and so
- * is slippage of the Standard (Standard → [+] and Performance → [−] → slippage). The
- * two local Balancing loops look healthy, but together they close a Reinforcing
- * spiral — Standard → improvement → Performance → slippage → Standard, two `−` → R:
- * let Performance dip and the Standard follows it down, easing the gap, easing the
- * effort, so Performance drifts lower still. That R badge is the trap.
+ * Drift to low performance — the eroding-goals trap. Performance is under steady
+ * erosion (a constant `decay` leak: entropy, wear, rising demands), and the only
+ * thing fighting it is improvement, driven by the gap to the Standard you hold
+ * yourself to (Standard → [+] and Performance → [−] → improvement). Were the
+ * Standard fixed, improvement would find a floor — Performance would settle a little
+ * below the goal (here, at 60) and hold. But the Standard is not fixed: it slips
+ * toward whatever you are actually delivering (Standard → [+] and Performance → [−]
+ * → slippage), so there is no floor. Every notch Performance loses, the Standard
+ * follows down, weakening improvement, and decay carries Performance lower still —
+ * the loop Standard → improvement → Performance → slippage → Standard, two `−` → R.
+ * That R badge is the trap: both ratchet downhill in lockstep (Performance 70 → 10,
+ * Standard 80 → 20), the effort forever just losing to decay.
  */
 function driftToLowPerformance(): Model {
-  // Performance sits low-left (fed by improvement from a Source); Standard sits
-  // high-right (drained by slippage to a Sink). The two long links that close the
-  // Reinforcing spiral cross in the open centre, where the R badge lands.
+  // Performance sits low-left (fed by improvement from a Source, leaked away by
+  // decay to a Sink straight below it); Standard sits high-right (drained by
+  // slippage to a Sink). The two long links that close the Reinforcing loop cross
+  // in the open centre, where the R badge lands.
   const source = makeCloud({ x: -560, y: 120 })
   const performance = makeStock({ x: -160, y: 120 }, "Performance")
-  performance.initialValue = 40
+  performance.initialValue = 70
   const improvement = makeFlow(
     midpoint(source.position, performance.position),
     "improvement",
@@ -559,24 +565,35 @@ function driftToLowPerformance(): Model {
     performance.id,
   )
   // improvement closes the gap upward: 10% of (Standard − Performance), pulling
-  // Performance toward the Standard.
+  // Performance toward the Standard — the one force resisting decay.
   improvement.rule = { kind: "gap", factor: 0.1 }
+  // decay leaks Performance away at a steady 2/step: the ever-present downward
+  // pressure the gap-driven improvement has to offset. Without it, two gap-closing
+  // flows would just meet in the middle; this is what makes the goal's erosion bite.
+  const decaySink = makeCloud({ x: -160, y: 400 })
+  const decay = makeFlow(
+    midpoint(performance.position, decaySink.position),
+    "decay",
+    performance.id,
+    decaySink.id,
+  )
+  decay.rule = { kind: "constant", value: 2 }
   const standard = makeStock({ x: 160, y: -120 }, "Standard")
   standard.initialValue = 80
-  const sink = makeCloud({ x: 560, y: -120 })
+  const slippageSink = makeCloud({ x: 560, y: -120 })
   const slippage = makeFlow(
-    midpoint(standard.position, sink.position),
+    midpoint(standard.position, slippageSink.position),
     "slippage",
     standard.id,
-    sink.id,
+    slippageSink.id,
   )
-  // slippage erodes the *same* gap from the other side: the Standard drifts down
-  // toward actual Performance. Both gaps close, so they meet — the Standard has
-  // sagged from 80 to the middle, the eroding-goal trap.
+  // slippage erodes the Standard toward actual Performance, also at 10% of the gap.
+  // It is what removes the floor: the Standard sags after Performance instead of
+  // holding above it, so the gap stays open at a fixed 10 while both slide down.
   slippage.rule = { kind: "gap", factor: 0.1 }
   return model(
     "Drift to low performance",
-    [source, performance, improvement, standard, sink, slippage],
+    [source, performance, improvement, decay, decaySink, standard, slippageSink, slippage],
     [
       link(standard, improvement, "+"),
       link(performance, improvement, "-"),
@@ -838,7 +855,7 @@ export const SAMPLES: Sample[] = [
   },
   {
     title: "Drift to low performance",
-    blurb: "Goals erode toward actual: a Reinforcing slide downhill.",
+    blurb: "An eroding goal leaves steady decay no floor: both slide downhill.",
     build: driftToLowPerformance,
   },
   {
