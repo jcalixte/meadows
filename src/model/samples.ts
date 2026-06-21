@@ -64,6 +64,21 @@
  *                                 threshold the smooth rules can't draw — so here the
  *                                 ceiling is *declared*, not emergent.
  *
+ * And the capstone — every piece at once, at the scale the whole gallery points toward:
+ *
+ *  16. World on a warming planet — the Club of Rome's World3 (Meadows et al., *The Limits
+ *                                 to Growth*) in miniature, its pollution sector reframed
+ *                                 as a climate channel: four coupled Stocks where two
+ *                                 Reinforcing engines (capital, population) overshoot a
+ *                                 finite Resource and the carbon they burn locks in the
+ *                                 warming that finishes them. The gallery's largest model,
+ *                                 it composes the whole vocabulary — a Stock→Stock bridge
+ *                                 ("Epidemic"), logistic-style limits ("Limits to growth"),
+ *                                 a renewable-resource overshoot ("Overshoot and collapse"),
+ *                                 and the bathtub's slow sink ("Bathtub with an overflow")
+ *                                 — into one system. A qualitative tribute to the shape, not
+ *                                 a port of the equations.
+ *
  * These are plain data built from the same tested constructors the store uses
  * (factory.ts), so every sample is a valid Model by construction. `build()`
  * mints fresh ids on each call, so loading a sample twice never collides.
@@ -1425,6 +1440,256 @@ function bathtubOverflow(): Model {
   )
 }
 
+/**
+ * World on a warming planet — the gallery's capstone: the Club of Rome's World3
+ * (Donella Meadows et al., *The Limits to Growth*, 1972) in miniature, with its
+ * persistent-pollution sector reframed as the climate channel. It is a *qualitative
+ * tribute*, not a port: World3 runs on hundreds of equations, table-function
+ * nonlinearities, and delays; here four Stocks on the gallery's four rules
+ * reproduce the famous *shape* — overshoot and collapse — without the apparatus.
+ *
+ * The four sectors and how they couple:
+ *  - **Capital** is the growth engine. output = factor × Capital × availability;
+ *    a slice is reinvested (investment, an inflow) so Capital → output → investment
+ *    → Capital is **Reinforcing** — the economy compounds. depreciation drains it
+ *    (**Balancing**).
+ *  - **Resources** is the finite planet: a nonrenewable Stock with *no* inflow.
+ *    `availability` ∝ Resources scales output, so as the reserve runs down the
+ *    economy is choked: Resources → availability → output → combustion → Resources,
+ *    one `−` → **Balancing**. This is the World3 limit.
+ *  - **Atmospheric carbon** is the climate channel. The same act that runs the
+ *    economy loads the sky: `combustion` is a single Stock→Stock Flow that drains
+ *    Resources straight *into* carbon — burning the reserve *is* the emission. A
+ *    slow `removal` (a Gap toward preindustrial) is the sink; tuned slow, so the
+ *    carbon **stays** — the bathtub, the lesson that stabilising emissions ≠
+ *    stabilising concentration.
+ *  - **Population** grows on births (**Reinforcing**) against baseline deaths
+ *    (**Balancing**). `warming` (a Gap reading carbon above the same preindustrial
+ *    baseline — the constant does double duty) drives `heat deaths`, the climate's
+ *    bite on people, and `climate damage`, its bite on Capital. That damage closes
+ *    the long cross-sector loop output → combustion → carbon → warming → climate
+ *    damage → Capital — so the climate is genuine *feedback*, not one-way forcing.
+ *
+ * Note what is *absent*: there is no Reinforcing tipping loop. The climate here is
+ * slow accumulation braked by its sink, not a runaway — faithful to World3's
+ * pollution sector, and a different model from a carbon-cycle one built to tip.
+ * The Reinforcing engines are growth (Capital) and births (Population); everything
+ * the planet pushes back with is Balancing. That asymmetry *is* limits-to-growth.
+ *
+ * What emerges (start 0, stop 250, dt 1): the economy booms, then overshoots the
+ * reserve and collapses — output peaks ≈540 at t≈47, Capital ≈1040 at t≈60, both
+ * falling to near nothing as Resources deplete 1000 → ~120. The carbon they burned
+ * climbs to ~1085 ppm and *holds* near 1000 (warming locked at ~4 °C) long after
+ * the emissions stop. That locked-in heat is what finishes Population: it overshoots
+ * to ~310 at t≈60 — the *last* sector to peak — then collapses to ~30, a third of
+ * where it began. Growth first, people last; the limit and the heat together.
+ */
+function worldOnAWarmingPlanet(): Model {
+  // Economy upper-left (Resources, Capital and their converters/flows); the carbon
+  // Stock sits centre on the same baseline as Resources, joined by the combustion
+  // bridge; `warming` hangs below it and radiates harm out to *both* the economy
+  // (up-left, climate damage) and Population (right, heat deaths). Population runs
+  // its own birth/death column on the right. Valves are hand-placed, not at
+  // midpoints, to keep every Information Link in open space.
+
+  // Resources sector (far left): a finite reserve that only depletes; its grade
+  // (availability) is what the economy can actually draw on.
+  const resources = makeStock({ x: -820, y: 60 }, "Resources")
+  resources.initialValue = 1000
+  resources.description =
+    "The planet's nonrenewable reserve — it has no inflow, so it only ever falls. As it runs down it chokes the economy that lives off it."
+  const availability = makeConverter({ x: -820, y: -140 }, "availability")
+  // availability = 0.001 × Resources: a 0…1 grade (starts at 1.0) that scales output.
+  availability.rule = { kind: "proportional", factor: 0.001 }
+  availability.description =
+    "How much of the reserve is still cheap to reach (∝ Resources, ~1.0 at the start, → 0 as it empties). It is the brake the finite planet puts on output."
+
+  // Economy: Capital is the hub — investment fills it (Reinforcing), depreciation
+  // and climate damage drain it (Balancing). output relays Capital × availability.
+  const capital = makeStock({ x: -420, y: -40 }, "Capital")
+  capital.initialValue = 50
+  capital.description =
+    "Industrial capital — the engine that compounds by reinvesting its own output, until the reserve it burns runs short and the heat it raises bites back."
+  const output = makeConverter({ x: -600, y: -200 }, "output")
+  // output = Capital × availability (both `+`): the economy's activity, throttled by
+  // how much reserve is left. It feeds investment, combustion, and (via carbon) warming.
+  output.rule = { kind: "proportional", factor: 1 }
+  output.description =
+    "Industrial output, Capital × availability: more capital makes more, but a depleting reserve scales it down. The relay that ties the economy to the planet."
+  const investSrc = makeCloud({ x: -680, y: -40 })
+  const investment = makeFlow({ x: -550, y: -40 }, "investment", investSrc.id, capital.id)
+  // investment = 12% of output, reinvested: Capital → output → investment → Capital,
+  // no `−` → the Reinforcing engine that drives the boom.
+  investment.rule = { kind: "proportional", factor: 0.12 }
+  investment.description =
+    "Output ploughed back into capital, 12% per step. More capital → more output → more investment: the Reinforcing engine of growth."
+  const deprSink = makeCloud({ x: -240, y: -200 })
+  const depreciation = makeFlow({ x: -330, y: -120 }, "depreciation", capital.id, deprSink.id)
+  // depreciation = 4% of Capital: wear. Below investment while the reserve lasts,
+  // above it once availability collapses — which is what tips Capital into decline.
+  depreciation.rule = { kind: "proportional", factor: 0.04 }
+  depreciation.description =
+    "Capital wearing out, 4% per step — the Balancing drain that overtakes investment once a depleted reserve starves output."
+  const dmgSink = makeCloud({ x: -640, y: -260 })
+  const climateDamage = makeFlow({ x: -540, y: -160 }, "climate damage", capital.id, dmgSink.id)
+  // climate damage = 0.004 × Capital × warming: the heat's bite on the economy. It
+  // closes the long climate→economy loop, so warming is feedback, not just forcing.
+  climateDamage.rule = { kind: "proportional", factor: 0.004 }
+  climateDamage.description =
+    "Capital lost to a hotter world, ∝ Capital × warming. It closes the loop from output through carbon and warming back onto Capital — the climate biting the economy that warmed it."
+
+  // The combustion bridge: a single Stock→Stock Flow draining Resources *into*
+  // carbon. Burning the reserve is the emission — no Source, no Sink, both ends Stocks.
+  const carbon = makeStock({ x: 40, y: 60 }, "Atmospheric carbon")
+  carbon.initialValue = 280
+  carbon.unit = "ppm"
+  carbon.description =
+    "Carbon in the air (ppm), 280 at the preindustrial start. Combustion fills it fast, the sink empties it slow — so it climbs, then stays. The bathtub."
+  const combustion = makeFlow({ x: -380, y: 60 }, "combustion", resources.id, carbon.id)
+  // combustion = 3% of output: the reserve burned each step, drained from Resources
+  // and added to carbon in one move. Conserved — what leaves the ground enters the sky.
+  combustion.rule = { kind: "proportional", factor: 0.03 }
+  combustion.description =
+    "The reserve burned to run the economy, ∝ output — drained from Resources straight into the air. The same act depletes the planet and loads the sky."
+  const removalSink = makeCloud({ x: 40, y: -140 })
+  const removal = makeFlow({ x: 40, y: -40 }, "removal", carbon.id, removalSink.id)
+  // removal = 0.001 × (carbon − preindustrial): the natural sink, a Gap toward the
+  // baseline. Deliberately slow, so carbon barely recedes — the locked-in warming.
+  removal.rule = { kind: "gap", factor: 0.001 }
+  removal.description =
+    "Nature drawing carbon back toward the preindustrial baseline — a slow Gap. So slow that once emitted, the carbon stays for the run: warming you cannot take back."
+  const preindustrial = makeConverter({ x: -180, y: 240 }, "preindustrial")
+  preindustrial.rule = { kind: "constant", value: 280 }
+  preindustrial.description =
+    "The preindustrial carbon baseline (280 ppm), doing double duty: the target the sink draws toward and the zero from which warming is measured."
+
+  const warming = makeConverter({ x: 300, y: 200 }, "warming")
+  // warming = 0.005 × (carbon − preindustrial): °C above preindustrial. A Gap reading
+  // carbon as the level and the baseline as the target; ~4 °C at the carbon peak.
+  warming.rule = { kind: "gap", factor: 0.005 }
+  warming.description =
+    "Warming in °C above preindustrial, ∝ (carbon − baseline) — about 4 °C at the peak. It feeds both the deaths it causes and the capital it destroys."
+
+  // Population: births compound it (Reinforcing), baseline deaths brake it (Balancing),
+  // and heat deaths add the climate toll that eventually overwhelms the birth engine.
+  const population = makeStock({ x: 660, y: 60 }, "Population")
+  population.initialValue = 100
+  population.unit = "people"
+  population.description =
+    "The people — grows on births, thinned by ordinary deaths, and finally overwhelmed by the heat the economy's carbon locked in. The last sector to peak, and to fall."
+  const birthSrc = makeCloud({ x: 660, y: -140 })
+  const births = makeFlow({ x: 660, y: -40 }, "births", birthSrc.id, population.id)
+  // births = 5% of Population: the Reinforcing engine, +3%/step net of baseline deaths.
+  births.rule = { kind: "proportional", factor: 0.05 }
+  births.description =
+    "New people, 5% of the population each step — the Reinforcing engine that grows it while the world stays cool enough to bear it."
+  const deathSink = makeCloud({ x: 520, y: 240 })
+  const deaths = makeFlow({ x: 600, y: 160 }, "deaths", population.id, deathSink.id)
+  // deaths = 2% of Population: ordinary mortality, the Balancing drain births outrun early.
+  deaths.rule = { kind: "proportional", factor: 0.02 }
+  deaths.description =
+    "Ordinary deaths, 2% of the population each step — the Balancing drain the birth engine outpaces, until the heat tips the balance."
+  const heatSink = makeCloud({ x: 820, y: 240 })
+  const heatDeaths = makeFlow({ x: 740, y: 160 }, "heat deaths", population.id, heatSink.id)
+  // heat deaths = 0.011 × Population × warming: the climate toll. Once warming passes
+  // ≈2.7 °C this outflow overtakes net births and Population turns from boom to collapse.
+  heatDeaths.rule = { kind: "proportional", factor: 0.011 }
+  heatDeaths.description =
+    "Deaths from a hotter world, ∝ Population × warming. Once warming passes ≈2.7 °C this overtakes net births, and the population collapses with the heat that never lifts."
+
+  return model(
+    "World on a warming planet",
+    [
+      resources,
+      availability,
+      capital,
+      output,
+      investSrc,
+      investment,
+      deprSink,
+      depreciation,
+      dmgSink,
+      climateDamage,
+      carbon,
+      combustion,
+      removalSink,
+      removal,
+      preindustrial,
+      warming,
+      population,
+      birthSrc,
+      births,
+      deathSink,
+      deaths,
+      heatSink,
+      heatDeaths,
+    ],
+    [
+      link(resources, availability, "+", "More reserve left → more of it cheap to reach."),
+      link(capital, output, "+", "More capital → more output: the level the economy compounds on."),
+      link(
+        availability,
+        output,
+        "+",
+        "More availability → more output. With Capital, output = Capital × availability — the planet throttling the economy.",
+      ),
+      link(
+        output,
+        investment,
+        "+",
+        "More output → more reinvested: the + that makes the growth loop Reinforcing.",
+      ),
+      link(capital, depreciation, "+", "More capital → more wearing out each step."),
+      link(capital, climateDamage, "+", "More capital → more of it exposed to a hotter world."),
+      link(
+        warming,
+        climateDamage,
+        "+",
+        "More warming → more capital destroyed. This − outflow closes the climate→economy loop: feedback, not forcing.",
+      ),
+      link(
+        output,
+        combustion,
+        "+",
+        "More output → more reserve burned: economic activity is what emits.",
+      ),
+      link(carbon, removal, "+", "More carbon above the baseline → faster (but slow) removal."),
+      link(
+        preindustrial,
+        removal,
+        "-",
+        "The baseline the sink draws toward (the − target): removal stops once carbon is back to it.",
+      ),
+      link(carbon, warming, "+", "More carbon → more warming: carbon is the level in the gap."),
+      link(
+        preindustrial,
+        warming,
+        "-",
+        "The baseline warming is measured from (the − target): no carbon above it, no warming.",
+      ),
+      link(
+        population,
+        births,
+        "+",
+        "More people → more births: the + that makes the population loop Reinforcing.",
+      ),
+      link(population, deaths, "+", "More people → more ordinary deaths."),
+      link(population, heatDeaths, "+", "More people → more of them exposed to the heat."),
+      link(
+        warming,
+        heatDeaths,
+        "+",
+        "More warming → more heat deaths. With Population this is the climate toll that ends the boom.",
+      ),
+    ],
+    // The economy overshoots the reserve and collapses (output peaks ≈540 @ t≈47,
+    // Capital ≈1040 @ t≈60 → ~1); Resources deplete 1000 → ~120. The carbon burned
+    // climbs to ~1085 ppm and holds near 1000 (warming locked at ~4 °C). Population
+    // overshoots last (~310 @ t≈60) then collapses to ~30 as the locked-in heat bites.
+    { start: 0, stop: 250, dt: 1 },
+  )
+}
+
 /** The gallery, ordered simplest first. */
 export const SAMPLES: Sample[] = [
   { title: "Bathtub", blurb: "A stock filled and drained — no feedback yet.", build: bathtub },
@@ -1495,7 +1760,14 @@ export const SAMPLES: Sample[] = [
   },
   {
     title: "Bathtub with an overflow",
-    blurb: "A flat-out tap and a spillway: the excess spills to a second Stock and the level holds.",
+    blurb:
+      "A flat-out tap and a spillway: the excess spills to a second Stock and the level holds.",
     build: bathtubOverflow,
+  },
+  {
+    title: "World on a warming planet",
+    blurb:
+      "The Club of Rome's World3 in miniature, with a climate channel: growth overshoots a finite planet and the carbon it burns locks in the heat that finishes it.",
+    build: worldOnAWarmingPlanet,
   },
 ]
