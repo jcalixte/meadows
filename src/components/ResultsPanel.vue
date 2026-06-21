@@ -59,9 +59,7 @@ const chart = computed(() => {
 </script>
 
 <template>
-  <div
-    class="absolute inset-x-3 bottom-3 z-30 rounded-box border border-base-300 bg-base-100/95 p-3 shadow-lg backdrop-blur"
-  >
+  <div class="shrink-0 border-t border-base-300 bg-base-100 p-3">
     <div class="flex items-center gap-2">
       <span class="text-sm font-semibold">Behaviour over time</span>
       <span class="truncate text-xs text-base-content/50">{{ store.model.name }}</span>

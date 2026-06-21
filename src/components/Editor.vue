@@ -24,7 +24,7 @@ import {
   VueFlow,
   type XYPosition,
 } from "@vue-flow/core"
-import { computed, onBeforeUnmount, onMounted, ref, useTemplateRef } from "vue"
+import { computed, onBeforeUnmount, onMounted, ref, useTemplateRef, watch } from "vue"
 import { useAutosave } from "@/composables/useAutosave"
 import { usePlayback } from "@/composables/usePlayback"
 import { parseModel, serializeModel } from "@/model/io"
@@ -74,6 +74,7 @@ const {
   getSelectedEdges,
   viewport,
   vueFlowRef,
+  dimensions,
   fitView,
 } = useVueFlow("meadows")
 
@@ -88,6 +89,26 @@ onNodesInitialized(() => {
   fitAfterInit = false
   fitView({ padding: 0.2 })
 })
+
+// Docking the results panel (Simulate) shrinks the canvas; closing it gives the
+// space back. Re-fit either way so the whole diagram stays framed in whatever
+// height remains. Vue Flow re-measures the pane a frame after the panel
+// mounts/unmounts and republishes the size via `dimensions`; fitting on *that*
+// signal (not straight after the toggle) frames against the settled size, so the
+// diagram never lands jammed against the new edge. The flag scopes the fit to
+// panel toggles, leaving ordinary window resizes to Vue Flow's own handling.
+let fitOnResize = false
+watch(showResults, () => {
+  fitOnResize = true
+})
+watch(
+  () => [dimensions.value.width, dimensions.value.height],
+  () => {
+    if (!fitOnResize) return
+    fitOnResize = false
+    fitView({ padding: 0.2 })
+  },
+)
 
 // Restore the last document on mount and persist every change (F7). Arm the same
 // post-measure fit a load uses; fitting synchronously in onRestore would frame
@@ -460,7 +481,6 @@ onBeforeUnmount(() => {
       <LoopOverlay />
       <GlossPanel />
       <Inspector />
-      <ResultsPanel v-if="showResults" @close="showResults = false" />
 
       <!-- Self-dismissing teaching hint, e.g. when a Flow is dragged back onto its
            own Stock to "close the loop". Click to dismiss early; z-30 keeps it above
@@ -479,5 +499,10 @@ onBeforeUnmount(() => {
         </div>
       </div>
     </div>
+
+    <!-- Docked beneath the canvas (not floating over it): opening Simulate shrinks
+         the canvas to the space above, where the diagram re-fits (see the
+         `dimensions` watcher in <script>). -->
+    <ResultsPanel v-if="showResults" @close="showResults = false" />
   </div>
 </template>
