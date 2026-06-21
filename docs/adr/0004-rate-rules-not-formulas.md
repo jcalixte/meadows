@@ -26,16 +26,29 @@ or two — never an expression:
 | **Constant**     | a fixed number              | nothing                                   | linear Stock change        |
 | **Proportional** | `factor × (its `+` inputs)` | the `+`-polarity inputs                   | exponential growth / decay |
 | **Gap**          | `factor × (level − target)` | the `+` input is _level_, `−` is _target_ | goal-seeking / asymptotic  |
+| **Overflow**     | `max(0, factor × (level − threshold))` | the `+` input is _level_, `−` is _threshold_ | a spillway / hard ceiling |
 
 The famous curves are _compositions_ of these over the structure — a logistic
 S-curve is Proportional growth meeting a Gap-driven ceiling (limits-to-growth);
 goal-seeking decay is a lone Gap (coffee cooling). The user sets up a local rule;
 the global shape **emerges**. That emergence _is_ the lesson.
 
+**Overflow is the one _declared_ limit.** Constant/Proportional/Gap are smooth and
+their ceilings _emerge_ (the S-curve is two of them meeting); Overflow instead is a
+threshold — `max(0, …)` that stays shut until a level crosses it, then spills the
+excess down an outflow (a bathtub brimming onto the floor). It earns a rule of its
+own because Gap _cannot_ stand in: Gap is signed and bidirectional (coffee re-warms
+if it drops below the room), so a Gap outflow runs _backwards_ below its target, and
+that clamp can't be applied to Gap globally without breaking the goal-seekers. So
+Overflow is a deliberate exception to "the shape emerges" — a hard ceiling you
+_declare_, for the real limit that is a wall, not a slope (and the rate-side sibling
+of the non-negative-Stock floor the integrator already enforces).
+
 **Polarity does double duty.** The `+`/`−` already captured for loop
 classification (ADR-0001) also selects each operand's role: Proportional reads
 its `+` inputs; Gap reads its `+` input as the level and its `−` input as the
-target. One gesture, two payoffs — no new per-link data.
+target, and Overflow the same with its `−` input as the threshold. One gesture,
+two payoffs — no new per-link data.
 
 ## Considered Options
 
@@ -70,5 +83,7 @@ target. One gesture, two payoffs — no new per-link data.
 - The vocabulary starts deliberately small (Constant / Proportional / Gap —
   enough for linear, exponential, and goal-seeking, and for the coffee and
   savings samples). Growing it is additive: a new `kind` in the union plus a case
-  in the evaluator. Multi-input products (e.g. `Population × fertility`) are a
-  later increment, not a phase-2 blocker.
+  in the evaluator — as **Overflow** later bore out (one union member, one
+  evaluator case, plus matching touch-ups to the rule validator and the
+  inspector). Multi-input products (e.g. `Population × fertility`) are a later
+  increment, not a phase-2 blocker.
