@@ -22,22 +22,26 @@
  *   7. Epidemic          — a chain of Stocks joined by Stock→Stock Flows: no clouds.
  *
  * Last, four of Donella Meadows' system *traps* — structures that reliably misbehave
- * (Thinking in Systems, ch. 5), to contrast the healthy dynamics above:
+ * (Thinking in Systems, ch. 5), to contrast the healthy dynamics above — and, paired
+ * with the first, the cure that escapes it:
  *
- *   8. Tragedy of the commons   — competing Reinforcing loops drain a shared Stock
- *                                 faster than its weak, shared Balancing brake reacts.
- *   9. Escalation               — a single Reinforcing loop spanning two Stocks, with
+ *   8. Tragedy of the commons   — two Reinforcing herds overgraze a *renewable* shared
+ *                                 Stock to bare dirt, then starve with it: all ruined.
+ *   9. …commons, fixed          — the same renewable commons, but stocking is regulated
+ *                                 against an agreed reserve: it holds, and the herds end
+ *                                 *larger* than the trap's boom leaves alive.
+ *  10. Escalation               — a single Reinforcing loop spanning two Stocks, with
  *                                 no brake in the structure: an arms race.
- *  10. Fixes that fail          — a fix drains the symptom Stock (B) while its side
+ *  11. Fixes that fail          — a fix drains the symptom Stock (B) while its side
  *                                 effect refills it (R): the cure feeds the disease.
- *  11. Drift to low performance — a goal that erodes toward actual performance, so the
+ *  12. Drift to low performance — a goal that erodes toward actual performance, so the
  *                                 effort it drives never overcomes a steady decay: a
  *                                 Reinforcing loop ratchets both downward.
  *
  * Next, the dynamic the book is named for, and the one the gallery has saved until a
  * reader knows every piece it needs:
  *
- *  12. Overshoot and collapse   — a Reinforcing harvester on a *renewable* Resource with
+ *  13. Overshoot and collapse   — a Reinforcing harvester on a *renewable* Resource with
  *                                 an extinction threshold (an Allee floor): a fleet
  *                                 overshoots the renewal rate and pushes the fishery past
  *                                 the point of no return. The dark twin of "Limits to
@@ -46,7 +50,7 @@
  * Last, the language pointed at a live debate — a classic trap (Shifting the burden to
  * the intervenor, ch. 5) wearing today's clothes:
  *
- *  13. AI deskilling spiral     — handing the burden of code quality to AI atrophies the
+ *  14. AI deskilling spiral     — handing the burden of code quality to AI atrophies the
  *                                 Expertise that holds quality up, so the team leans on AI
  *                                 harder and Technical debt spirals: addiction, not a fix.
  *
@@ -510,65 +514,264 @@ function epidemic(): Model {
 }
 
 /**
- * Tragedy of the commons — Meadows' first system *trap*: several users sharing one
- * resource, each with a Reinforcing loop that grows its own use, and only a weak,
- * shared Balancing loop to rein them in. Each Herd breeds the more cattle it has
- * (Herd → [+] → growth: Reinforcing) and grazes the shared Pasture (Herd → [+] →
- * grazing, which drains Pasture). Less Pasture does slow each herd (Pasture → [+] →
- * growth: a Balancing loop per herd) — but that brake runs through the *one* shared
- * Stock, so in practice it is too slow to stop the herds racing each other down to
- * bare dirt. The trap is structural: each herder gains by growing, while the cost
- * falls on the commons they both depend on.
+ * Tragedy of the commons — Meadows' first system *trap*, and the bleakest: several users
+ * sharing one *renewable* resource, each breeding its own herd heedless of the commons'
+ * condition, until they overshoot it and all lose. The Pasture grows back like a
+ * population — fastest at mid-levels, but bare ground barely regrows (regrowth ∝
+ * Pasture × headroom, where headroom = capacity − Pasture). Each Herd breeds the more
+ * cattle it has (Herd → [+] → growth: a Reinforcing engine) and grazes the shared
+ * Pasture; cattle also die off naturally (Herd → [−] → deaths). The one restraint, the
+ * Pasture → [+] → growth link, runs through the *shared* Stock and only *speeds* breeding
+ * — it never stops it, so two herds racing each other overshoot the renewal rate. They
+ * graze the commons to bare dirt; with no grass to regrow from, the Pasture stays dead,
+ * and with nothing to eat the herds starve and crash too. Resource and users ruined
+ * together. The trap is structural: each herder gains privately by breeding, while the
+ * cost of overgrazing falls on the commons they all depend on. ("…commons, fixed" keeps
+ * this exact renewable Pasture and only regulates the herds — the cure is regulation,
+ * not regrowth.)
  */
 function tragedyOfTheCommons(): Model {
   const pasture = makeStock({ x: 0, y: 0 }, "Pasture")
   pasture.initialValue = 1000
   pasture.description =
-    "The shared grass — one Stock both herds graze, with no regrowth here. The commons the trap exhausts."
-  // Two symmetric herds: cattle enter from a Source on the outside, grass leaves
-  // the Pasture downward to a Sink. The two `Pasture → growth` links are the weak
-  // brake the trap overruns.
-  const sourceA = makeCloud({ x: -640, y: 0 })
-  const herdA = makeStock({ x: -360, y: 0 }, "Herd A")
+    "The shared grass — a renewable commons that grows back like a population: fastest at mid-levels, barely at all once it is bare. Here two herds graze it to nothing."
+  // Renewal on top: regrowth ∝ Pasture × headroom (logistic) — it needs existing grass
+  // *and* room to grow, so a meadow grazed to bare dirt cannot come back.
+  const renewSource = makeCloud({ x: 0, y: -360 })
+  const regrowth = makeFlow({ x: 0, y: -180 }, "regrowth", renewSource.id, pasture.id)
+  // regrowth = factor × Pasture × headroom: grass from grass (the `+` Pasture input)
+  // capped by headroom. Zero when the Pasture is bare — the floor the trap falls through.
+  regrowth.rule = { kind: "proportional", factor: 0.000075 }
+  regrowth.description =
+    "Grass growing back, ∝ Pasture × headroom: it needs both standing grass and room to spread. Bare ground (Pasture ≈ 0) regrows nothing — so the collapse is final."
+  const capacity = makeConverter({ x: -320, y: -260 }, "capacity")
+  capacity.rule = { kind: "constant", value: 1000 }
+  capacity.description =
+    "The meadow's full grass cover (a constant) — the ceiling growth runs into."
+  const headroom = makeConverter({ x: 320, y: -260 }, "headroom")
+  // headroom = capacity − Pasture (a Gap): the room left to grow, which throttles regrowth
+  // as the meadow fills. Pasture × headroom makes regrowth the classic logistic curve.
+  headroom.rule = { kind: "gap", factor: 1 }
+  headroom.description =
+    "Room left to grow, capacity − Pasture (a Gap). Multiplied into regrowth it makes the renewal logistic — peaking mid-way, vanishing at empty and full."
+  // Two symmetric herds: cattle breed in from a Source, die off to one Sink, and their
+  // grazing drains the shared Pasture to another. Nothing reads the Pasture to *restrain*
+  // breeding — the missing feedback that makes this a trap.
+  const sourceA = makeCloud({ x: -760, y: 0 })
+  const herdA = makeStock({ x: -380, y: 0 }, "Herd A")
   herdA.initialValue = 10
-  herdA.description = "Herd A's cattle — grows on itself and grazes the shared Pasture."
+  herdA.description =
+    "Herd A's cattle — breeds on itself, grazes the shared Pasture, and starves once the grass is gone."
   const growthA = makeFlow(
     midpoint(sourceA.position, herdA.position),
     "growth A",
     sourceA.id,
     herdA.id,
   )
-  // growth = herd × Pasture (both `+`): each herd grows the more cattle it has and
-  // the more grass is left — a Reinforcing loop, braked only by the shared Pasture.
-  growthA.rule = { kind: "proportional", factor: 0.0003 }
+  // growth = factor × herd × Pasture (both `+`): the Reinforcing breeding engine. It
+  // reads the Pasture, but only to speed up — never to stop — so it overshoots.
+  growthA.rule = { kind: "proportional", factor: 0.00018 }
   growthA.description =
-    "Herd A breeding, ∝ herd × Pasture: more cattle and more grass both speed it — a Reinforcing loop braked only by the shared Pasture."
-  const sinkA = makeCloud({ x: -200, y: 240 })
+    "Herd A breeding, ∝ herd × Pasture: more cattle and more grass both speed it — the Reinforcing engine that overshoots the commons."
+  const deathSinkA = makeCloud({ x: -560, y: 220 })
+  const deathsA = makeFlow({ x: -470, y: 120 }, "deaths A", herdA.id, deathSinkA.id)
+  // deaths = 8% of the herd: ordinary mortality. Harmless while grass is plentiful; once
+  // the Pasture is grazed out, breeding stalls (∝ Pasture → 0) and this drain wins.
+  deathsA.rule = { kind: "proportional", factor: 0.08 }
+  deathsA.description =
+    "Cattle A dying, 8% of the herd. Once the Pasture is gone and breeding stalls, this linear drain starves the herd to nothing."
+  const grazeSinkA = makeCloud({ x: -180, y: 300 })
   const grazingA = makeFlow(
-    midpoint(pasture.position, sinkA.position),
+    midpoint(pasture.position, grazeSinkA.position),
     "grazing A",
     pasture.id,
-    sinkA.id,
+    grazeSinkA.id,
   )
-  // grazing = 6% of the herd, drained from the *shared* Pasture (which never
-  // regrows here): two appetites racing one stock down to bare dirt.
   grazingA.rule = { kind: "proportional", factor: 0.06 }
   grazingA.description =
-    "Grass eaten by Herd A, 6% of the herd, drained from the shared Pasture — one of two appetites on one Stock."
-  const sourceB = makeCloud({ x: 640, y: 0 })
-  const herdB = makeStock({ x: 360, y: 0 }, "Herd B")
+    "Grass eaten by Herd A, 6% of the herd, drained from the shared Pasture — one of two appetites racing the renewal rate."
+  const sourceB = makeCloud({ x: 760, y: 0 })
+  const herdB = makeStock({ x: 380, y: 0 }, "Herd B")
   herdB.initialValue = 10
-  herdB.description = "Herd B's cattle — identical to A, racing it for the same grass."
+  herdB.description =
+    "Herd B's cattle — identical to A, racing it for the same grass and starving with it."
   const growthB = makeFlow(
     midpoint(sourceB.position, herdB.position),
     "growth B",
     sourceB.id,
     herdB.id,
   )
-  growthB.rule = { kind: "proportional", factor: 0.0003 }
-  growthB.description =
-    "Herd B breeding, the same rule as A: a Reinforcing loop on the shared Pasture."
-  const sinkB = makeCloud({ x: 200, y: 240 })
+  growthB.rule = { kind: "proportional", factor: 0.00018 }
+  growthB.description = "Herd B breeding, the same Reinforcing rule as A on the shared Pasture."
+  const deathSinkB = makeCloud({ x: 560, y: 220 })
+  const deathsB = makeFlow({ x: 470, y: 120 }, "deaths B", herdB.id, deathSinkB.id)
+  deathsB.rule = { kind: "proportional", factor: 0.08 }
+  deathsB.description =
+    "Cattle B dying, 8% of the herd — the drain that starves the herd once the grass is gone."
+  const grazeSinkB = makeCloud({ x: 180, y: 300 })
+  const grazingB = makeFlow(
+    midpoint(pasture.position, grazeSinkB.position),
+    "grazing B",
+    pasture.id,
+    grazeSinkB.id,
+  )
+  grazingB.rule = { kind: "proportional", factor: 0.06 }
+  grazingB.description = "Grass eaten by Herd B — the second appetite draining the same Stock."
+  return model(
+    "Tragedy of the commons",
+    [
+      pasture,
+      renewSource,
+      regrowth,
+      capacity,
+      headroom,
+      sourceA,
+      herdA,
+      growthA,
+      deathSinkA,
+      deathsA,
+      grazeSinkA,
+      grazingA,
+      sourceB,
+      herdB,
+      growthB,
+      deathSinkB,
+      deathsB,
+      grazeSinkB,
+      grazingB,
+    ],
+    [
+      link(capacity, headroom, "+", "More capacity → more room to grow."),
+      link(pasture, headroom, "-", "More Pasture → less room left: headroom = capacity − Pasture."),
+      link(
+        pasture,
+        regrowth,
+        "+",
+        "More Pasture → more regrowth: grass grows from grass (zero when bare).",
+      ),
+      link(
+        headroom,
+        regrowth,
+        "+",
+        "More room → more regrowth; with Pasture this makes renewal logistic.",
+      ),
+      link(herdA, growthA, "+", "More cattle in A → more breeding: A's Reinforcing engine."),
+      link(
+        pasture,
+        growthA,
+        "+",
+        "More Pasture → faster breeding for A: the weak shared brake that only speeds growth, never stops it.",
+      ),
+      link(herdA, deathsA, "+", "More cattle in A → more deaths."),
+      link(herdA, grazingA, "+", "More cattle in A → more grazing off the commons."),
+      link(herdB, growthB, "+", "More cattle in B → more breeding: B's Reinforcing engine."),
+      link(
+        pasture,
+        growthB,
+        "+",
+        "More Pasture → faster breeding for B: the same shared brake, too weak to stop the race.",
+      ),
+      link(herdB, deathsB, "+", "More cattle in B → more deaths."),
+      link(herdB, grazingB, "+", "More cattle in B → more grazing off the commons."),
+    ],
+    // The two Reinforcing herds overshoot the renewal rate: cattle boom to ~400 by t≈50
+    // while the Pasture is grazed 1000 → 0 by t≈75. With no grass to regrow from, the
+    // commons stays dead and the herds starve back toward 0 — resource and users ruined.
+    { start: 0, stop: 150, dt: 1 },
+  )
+}
+
+/**
+ * Tragedy of the commons, fixed — the companion to the trap above, sharing its *exact*
+ * renewable Pasture: the same logistic regrowth toward the same capacity. The one change
+ * is the cure Donella Meadows prescribes: regulate the commons. The herds no longer breed
+ * unchecked — the trap's Reinforcing breeding engine is gone — instead each herd's
+ * *stocking* is governed by the shared Pasture against an agreed *reserve* (stocking ∝
+ * Pasture − reserve): put cattle on while there is surplus grass, cull as the Pasture is
+ * drawn down to the reserve. That closes a Balancing loop per herd (Pasture → stocking →
+ * Herd → grazing → Pasture), restoring the feedback the trap was missing. So the same
+ * grass the trap grazed to bare dirt now holds near the reserve, and both herds settle at
+ * a sustainable size — *more* cattle than the trap's boom leaves alive once it starves,
+ * on a commons that survives. Same renewable resource, same two users: the difference is
+ * regulation, not regrowth — and it is the difference between everyone losing and lasting.
+ */
+function tragedyOfTheCommonsFixed(): Model {
+  const pasture = makeStock({ x: 0, y: 0 }, "Pasture")
+  pasture.initialValue = 1000
+  pasture.description =
+    "The shared grass — the same renewable commons as the trap, with the same logistic regrowth. Here the quota holds it near its reserve instead of letting it be grazed to dirt."
+  // Renewal on top: regrowth ∝ Pasture × headroom (logistic) — identical to the trap.
+  // What changes below is how the herds decide, not how the grass grows.
+  const renewSource = makeCloud({ x: 0, y: -360 })
+  const regrowth = makeFlow({ x: 0, y: -180 }, "regrowth", renewSource.id, pasture.id)
+  // regrowth = factor × Pasture × headroom: the same logistic renewal as the trap. What
+  // differs is that regulated stocking never overshoots it, so the grass is never wiped out.
+  regrowth.rule = { kind: "proportional", factor: 0.000075 }
+  regrowth.description =
+    "Grass growing back, ∝ Pasture × headroom: the same logistic renewal as the trap. What differs is that regulated stocking never overshoots it."
+  const capacity = makeConverter({ x: -320, y: -260 }, "capacity")
+  capacity.rule = { kind: "constant", value: 1000 }
+  capacity.description =
+    "The meadow's full grass cover (a constant) — the ceiling growth runs into."
+  const headroom = makeConverter({ x: 320, y: -260 }, "headroom")
+  // headroom = capacity − Pasture (a Gap): the room left to grow, which throttles regrowth
+  // as the meadow fills — the same logistic machinery the trap uses.
+  headroom.rule = { kind: "gap", factor: 1 }
+  headroom.description =
+    "Room left to grow, capacity − Pasture (a Gap). Multiplied into regrowth it makes the renewal logistic — the same as in the trap."
+  // The agreed quota target, shared by both herds: stocking stops once the Pasture is
+  // grazed down to here. The single number that turns the trap into a managed commons.
+  const reserve = makeConverter({ x: 0, y: 360 }, "reserve")
+  reserve.rule = { kind: "constant", value: 600 }
+  reserve.description =
+    "The floor both herders agree to protect (a constant) — the quota target. As the Pasture nears it, stocking falls to zero."
+  // Two symmetric herds: cattle enter from a Source, grass leaves the Pasture downward to
+  // a Sink. The herd's inflow is now a quota, not self-breeding — and with no breeding
+  // there is no herd to starve, so the trap's mortality outflow is gone too.
+  const sourceA = makeCloud({ x: -760, y: 0 })
+  const herdA = makeStock({ x: -380, y: 0 }, "Herd A")
+  herdA.initialValue = 10
+  herdA.description =
+    "Herd A's cattle — no longer breeding on themselves; its size is set by the quota, which reads the shared Pasture."
+  const stockingA = makeFlow(
+    midpoint(sourceA.position, herdA.position),
+    "stocking A",
+    sourceA.id,
+    herdA.id,
+  )
+  // stocking = factor × (Pasture − reserve): a Gap rule. Add cattle while there is
+  // surplus grass above the reserve, taper to zero as the Pasture nears it — the
+  // restored feedback, resource condition governing the decision.
+  stockingA.rule = { kind: "gap", factor: 0.003 }
+  stockingA.description =
+    "Cattle A puts on the commons, ∝ (Pasture − reserve): stock up while grass is above the reserve, taper to nothing as it nears it. The restored feedback."
+  const sinkA = makeCloud({ x: -230, y: 300 })
+  const grazingA = makeFlow(
+    midpoint(pasture.position, sinkA.position),
+    "grazing A",
+    pasture.id,
+    sinkA.id,
+  )
+  // grazing = 6% of the herd, drained from the shared Pasture — the same appetite as
+  // the trap, but now matched by regrowth instead of racing it to bare dirt.
+  grazingA.rule = { kind: "proportional", factor: 0.06 }
+  grazingA.description =
+    "Grass eaten by Herd A, 6% of the herd, drained from the shared Pasture — the same appetite as the trap, now matched by regrowth."
+  const sourceB = makeCloud({ x: 760, y: 0 })
+  const herdB = makeStock({ x: 380, y: 0 }, "Herd B")
+  herdB.initialValue = 10
+  herdB.description =
+    "Herd B's cattle — identical to A and under the same shared quota: both users governed by the commons' condition."
+  const stockingB = makeFlow(
+    midpoint(sourceB.position, herdB.position),
+    "stocking B",
+    sourceB.id,
+    herdB.id,
+  )
+  stockingB.rule = { kind: "gap", factor: 0.003 }
+  stockingB.description =
+    "Cattle B puts on, the same quota rule as A — both stockings read the one shared Pasture against the one reserve."
+  const sinkB = makeCloud({ x: 230, y: 300 })
   const grazingB = makeFlow(
     midpoint(pasture.position, sinkB.position),
     "grazing B",
@@ -576,29 +779,74 @@ function tragedyOfTheCommons(): Model {
     sinkB.id,
   )
   grazingB.rule = { kind: "proportional", factor: 0.06 }
-  grazingB.description = "Grass eaten by Herd B — the second appetite draining the same Stock."
+  grazingB.description =
+    "Grass eaten by Herd B — the second appetite, held in check by the same regulating loop."
   return model(
-    "Tragedy of the commons",
-    [pasture, sourceA, herdA, growthA, sinkA, grazingA, sourceB, herdB, growthB, sinkB, grazingB],
+    "Tragedy of the commons, fixed",
     [
-      link(herdA, growthA, "+", "More cattle in A → more growth: A's Reinforcing engine."),
+      pasture,
+      renewSource,
+      regrowth,
+      capacity,
+      headroom,
+      reserve,
+      sourceA,
+      herdA,
+      stockingA,
+      sinkA,
+      grazingA,
+      sourceB,
+      herdB,
+      stockingB,
+      sinkB,
+      grazingB,
+    ],
+    [
+      link(capacity, headroom, "+", "More capacity → more room to grow."),
+      link(pasture, headroom, "-", "More Pasture → less room left: headroom = capacity − Pasture."),
+      link(
+        pasture,
+        regrowth,
+        "+",
+        "More Pasture → more regrowth: grass grows from grass (zero when bare).",
+      ),
+      link(
+        headroom,
+        regrowth,
+        "+",
+        "More room → more regrowth; with Pasture this makes renewal logistic.",
+      ),
+      link(
+        pasture,
+        stockingA,
+        "+",
+        "More Pasture above the reserve → more stocking for A: resource condition now drives the decision.",
+      ),
+      link(
+        reserve,
+        stockingA,
+        "-",
+        "The reserve is the target stocking defends — as the Pasture nears it, A's stocking falls to zero.",
+      ),
       link(herdA, grazingA, "+", "More cattle in A → more grazing off the commons."),
       link(
         pasture,
-        growthA,
+        stockingB,
         "+",
-        "More Pasture → faster growth for A: the weak, shared brake that runs through the one Stock.",
+        "More Pasture above the reserve → more stocking for B: the same restored feedback.",
       ),
-      link(herdB, growthB, "+", "More cattle in B → more growth: B's Reinforcing engine."),
-      link(herdB, grazingB, "+", "More cattle in B → more grazing off the commons."),
       link(
-        pasture,
-        growthB,
-        "+",
-        "More Pasture → faster growth for B: the same shared brake, too slow to stop the race.",
+        reserve,
+        stockingB,
+        "-",
+        "The same reserve governs B — both herds back off as the Pasture approaches it.",
       ),
+      link(herdB, grazingB, "+", "More cattle in B → more grazing off the commons."),
     ],
-    { start: 0, stop: 60, dt: 1 },
+    // The Pasture eases 1000 → ~580 (near the reserve) and holds; both herds climb from
+    // 10 and level off (~150) at the size the renewal can feed — far more than the trap's
+    // boom leaves alive. A sustainable equilibrium where the trap collapsed for good.
+    { start: 0, stop: 350, dt: 1 },
   )
 }
 
@@ -1130,8 +1378,13 @@ export const SAMPLES: Sample[] = [
   },
   {
     title: "Tragedy of the commons",
-    blurb: "Two Reinforcing appetites drain one shared Stock: a system trap.",
+    blurb: "Two Reinforcing herds overgraze a renewable Stock, then starve with it: a system trap.",
     build: tragedyOfTheCommons,
+  },
+  {
+    title: "Tragedy of the commons, fixed",
+    blurb: "Regulate the same renewable commons with a reserve: it holds, and the herds last.",
+    build: tragedyOfTheCommonsFixed,
   },
   {
     title: "Escalation",
