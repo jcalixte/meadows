@@ -36,10 +36,11 @@
  * Next, the dynamic the book is named for, and the one the gallery has saved until a
  * reader knows every piece it needs:
  *
- *  12. Overshoot and collapse   — a Reinforcing engine running on a *non-renewable*
- *                                 Stock (the first with no inflow): it overshoots the
- *                                 limit instead of settling at it, the dark twin of
- *                                 "Limits to growth" — the ceiling erodes, so it crashes.
+ *  12. Overshoot and collapse   — a Reinforcing harvester on a *renewable* Resource with
+ *                                 an extinction threshold (an Allee floor): a fleet
+ *                                 overshoots the renewal rate and pushes the fishery past
+ *                                 the point of no return. The dark twin of "Limits to
+ *                                 growth" — the limit doesn't hold, it collapses for good.
  *
  * Last, the language pointed at a live debate — a classic trap (Shifting the burden to
  * the intervenor, ch. 5) wearing today's clothes:
@@ -587,63 +588,117 @@ function driftToLowPerformance(): Model {
 }
 
 /**
- * Overshoot and collapse — the dark twin of "Limits to growth". The same
- * Reinforcing engine runs, but the limit here is a *non-renewable* Resource that
- * only depletes: a Stock with no inflow, the first in the gallery. An economy
- * (Capital) lives off it — extraction grows with both the Resource left and the
- * Capital deployed (Resource, Capital → [+] → extraction), and the revenue is
- * reinvested as new Capital (extraction → [+] → investment → Capital), so the loop
- * Capital → extraction → investment → Capital carries no `−` → Reinforcing. Capital
- * climbs and extraction accelerates, but every unit burned is gone for good, so the
- * Resource crosses the break-even level, the engine starves, and depreciation
- * (Capital → [+] → depreciation, a Balancing drain) takes Capital down: it peaks,
- * then collapses. Contrast "Predator and prey", whose prey regrows and so settles
- * into oscillation — a finite Resource cannot, so it overshoots and crashes instead.
+ * Overshoot and collapse — the dark twin of "Limits to growth", on a *renewable*
+ * Resource with a point of no return. A fishery (Fish) regrows on its own, but
+ * reproduction needs fish to find each other: spawning scales with density
+ * (spawning = factor × Fish × density, density ∝ Fish, so ~Fish²), while natural
+ * deaths are merely linear (natural deaths = factor × Fish). Above a critical
+ * density the quadratic births win and the stock climbs to its carrying capacity
+ * (crowding deaths ~Fish³ cap it there); *below* it the linear deaths win and the
+ * stock slides to an extinction it cannot climb back from — the Allee threshold,
+ * the renewable resource's hidden floor.
+ *
+ * A fishing fleet (Boats) reinvests its catch into more boats
+ * (Boats → catch → fleet growth → Boats, no `−` → Reinforcing), so the catch
+ * (catch = factor × Fish × Boats) accelerates and overshoots the renewal rate,
+ * dragging Fish under the threshold. Once there it is too late: even as the catch
+ * starves and the fleet scraps itself (Boats → [+] → scrapping, a Balancing drain),
+ * the Fish are gone for good and never recover. Contrast "Predator and prey", whose
+ * prey regrows from any level and so oscillates forever — here the prey has a floor
+ * it cannot climb back from, so a Reinforcing harvester collapses it permanently.
+ *
+ * The Allee curve is the one shape the proportional rule cannot draw alone (it needs
+ * net regrowth to go negative–positive–negative), so two relays build it: `density`
+ * (∝ Fish) lifts spawning to ~Fish², and `crowding` (∝ Fish²) lifts crowding deaths
+ * to ~Fish³ — the same crowding trick as "Limits to growth", doubled. The gallery's
+ * largest model, and the only one that needs a Converter feeding a Converter.
  */
 function overshootAndCollapse(): Model {
-  // Resource on the left drains only downward (no inflow). Capital on the right runs
-  // a full Source → investment → Capital → depreciation → Sink column. The two
-  // coupling links — Capital → extraction and extraction → investment — cross in the
-  // open centre, where the R badge lands.
-  const resource = makeStock({ x: -240, y: 0 }, "Resource")
-  resource.initialValue = 1000
-  const extractionSink = makeCloud({ x: -240, y: 360 })
-  const extraction = makeFlow({ x: -240, y: 160 }, "extraction", resource.id, extractionSink.id)
-  // extraction = factor × Resource × Capital (both `+`): more capital extracts
-  // faster, scarcer resource slower. The bilinear term the non-negative floor tames.
-  extraction.rule = { kind: "proportional", factor: 0.0004 }
-  const capital = makeStock({ x: 240, y: 0 }, "Capital")
-  capital.initialValue = 5
-  const investmentSource = makeCloud({ x: 240, y: -360 })
-  const investment = makeFlow({ x: 240, y: -160 }, "investment", investmentSource.id, capital.id)
-  // investment = factor × extraction (its one `+` input): the revenue reinvested —
-  // a Flow feeding a Flow, the edge that closes the Reinforcing loop through Capital.
-  investment.rule = { kind: "proportional", factor: 0.5 }
-  const depreciationSink = makeCloud({ x: 240, y: 360 })
-  const depreciation = makeFlow({ x: 240, y: 160 }, "depreciation", capital.id, depreciationSink.id)
-  // depreciation = factor × Capital (its `+` input): the Balancing drain that wins
-  // once the Resource can no longer feed investment.
-  depreciation.rule = { kind: "proportional", factor: 0.04 }
+  // Fish (left) carries the whole renewal engine: a spawning inflow from the top, and
+  // three drains — natural deaths, crowding deaths, and the catch. Boats (right) runs a
+  // Source → fleet growth → Boats → scrapping → Sink column. The two coupling links —
+  // Boats → catch and catch → fleet growth — cross the open centre, where the R badge lands.
+  const fish = makeStock({ x: -420, y: 0 }, "Fish")
+  fish.initialValue = 1000
+  fish.unit = "tonnes"
+  // density ∝ Fish: how easily fish meet to spawn. Relays Fish into the births term so
+  // spawning reads as ~Fish² — the Allee mechanism (sparse fish breed slowly).
+  const density = makeConverter({ x: -700, y: -80 }, "density")
+  density.rule = { kind: "proportional", factor: 1 }
+  // crowding ∝ Fish² (Fish × density): the overcrowding pressure that lifts crowding
+  // deaths to ~Fish³, so the stock plateaus at its carrying capacity. A Converter read
+  // by a Converter — the only such wiring in the gallery.
+  const crowding = makeConverter({ x: -700, y: 80 }, "crowding")
+  crowding.rule = { kind: "proportional", factor: 1 }
+  const spawnSource = makeCloud({ x: -420, y: -320 })
+  const spawning = makeFlow({ x: -420, y: -160 }, "spawning", spawnSource.id, fish.id)
+  // spawning = factor × Fish × density (~Fish²): the Reinforcing birth engine that
+  // needs a crowd — it falls away faster than deaths as the Fish thin out.
+  spawning.rule = { kind: "proportional", factor: 0.00036 }
+  const deathSink = makeCloud({ x: -720, y: 280 })
+  const naturalDeaths = makeFlow({ x: -580, y: 180 }, "natural deaths", fish.id, deathSink.id)
+  // natural deaths = factor × Fish (linear): the Balancing drain that *wins* below the
+  // Allee threshold, where ~Fish² spawning can no longer keep up — and extinction follows.
+  naturalDeaths.rule = { kind: "proportional", factor: 0.06 }
+  const crowdSink = makeCloud({ x: -420, y: 320 })
+  const crowdingDeaths = makeFlow({ x: -420, y: 160 }, "crowding deaths", fish.id, crowdSink.id)
+  // crowding deaths = factor × Fish × crowding (~Fish³): the steep Balancing ceiling
+  // that holds the healthy stock at carrying capacity.
+  crowdingDeaths.rule = { kind: "proportional", factor: 3e-7 }
+  const catchSink = makeCloud({ x: -90, y: 220 })
+  const catching = makeFlow({ x: -255, y: 90 }, "catch", fish.id, catchSink.id)
+  // catch = factor × Fish × Boats (both `+`): more boats and more fish both lift the
+  // haul. This is what overshoots the renewal rate and pulls Fish under the threshold.
+  catching.rule = { kind: "proportional", factor: 0.0004 }
+  const boats = makeStock({ x: 420, y: 0 }, "Boats")
+  boats.initialValue = 5
+  const fleetSource = makeCloud({ x: 420, y: -320 })
+  const fleetGrowth = makeFlow({ x: 420, y: -160 }, "fleet growth", fleetSource.id, boats.id)
+  // fleet growth = factor × catch (its one `+` input): the revenue reinvested — a Flow
+  // feeding a Flow, the edge that closes the Reinforcing loop through Boats.
+  fleetGrowth.rule = { kind: "proportional", factor: 0.5 }
+  const scrapSink = makeCloud({ x: 420, y: 320 })
+  const scrapping = makeFlow({ x: 420, y: 160 }, "scrapping", boats.id, scrapSink.id)
+  // scrapping = factor × Boats (its `+` input): the Balancing drain that takes the fleet
+  // down once the catch can no longer feed fleet growth.
+  scrapping.rule = { kind: "proportional", factor: 0.04 }
   return model(
     "Overshoot and collapse",
     [
-      resource,
-      extractionSink,
-      extraction,
-      capital,
-      investmentSource,
-      investment,
-      depreciationSink,
-      depreciation,
+      fish,
+      density,
+      crowding,
+      spawnSource,
+      spawning,
+      deathSink,
+      naturalDeaths,
+      crowdSink,
+      crowdingDeaths,
+      catchSink,
+      catching,
+      boats,
+      fleetSource,
+      fleetGrowth,
+      scrapSink,
+      scrapping,
     ],
     [
-      link(resource, extraction, "+"),
-      link(capital, extraction, "+"),
-      link(extraction, investment, "+"),
-      link(capital, depreciation, "+"),
+      link(fish, density, "+"),
+      link(fish, crowding, "+"),
+      link(density, crowding, "+"),
+      link(fish, spawning, "+"),
+      link(density, spawning, "+"),
+      link(fish, naturalDeaths, "+"),
+      link(fish, crowdingDeaths, "+"),
+      link(crowding, crowdingDeaths, "+"),
+      link(fish, catching, "+"),
+      link(boats, catching, "+"),
+      link(catching, fleetGrowth, "+"),
+      link(boats, scrapping, "+"),
     ],
-    // Capital starts at 5, overshoots to ~250 by t≈39, and collapses back near its
-    // starting level by t=150 — the full boom-and-bust arc, no dead tail.
+    // Fish hold near carrying capacity (1000) while the fleet compounds, cross the Allee
+    // threshold (~200) around t≈40 as the catch overshoots, then go extinct and stay
+    // there; Boats overshoot to ~450 (t≈40) and collapse back near their start by t=150.
     { start: 0, stop: 150, dt: 1 },
   )
 }
@@ -787,7 +842,7 @@ export const SAMPLES: Sample[] = [
   },
   {
     title: "Overshoot and collapse",
-    blurb: "A growth engine burns a finite Resource: it peaks, then crashes.",
+    blurb: "A fleet overfishes past the point of no return: the stock collapses for good.",
     build: overshootAndCollapse,
   },
   {
