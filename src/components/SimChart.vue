@@ -76,8 +76,54 @@ function themeColor(name: string, fallback: string): string {
   return value || fallback
 }
 
+/**
+ * Peak |value| of a track as an order of magnitude (log10), or null when the
+ * track is empty or flat-zero — there is no magnitude to compare.
+ */
+function magnitude(track: (number | null)[]): number | null {
+  let peak = 0
+  for (const v of track) {
+    if (v !== null && Number.isFinite(v)) {
+      const a = Math.abs(v)
+      if (a > peak) peak = a
+    }
+  }
+  return peak > 0 ? Math.log10(peak) : null
+}
+
+// Split tracks onto a second y-axis once they span more than this many orders of
+// magnitude: below it a single shared axis reads fine; above it the smaller track
+// is flattened against the baseline by the larger one.
+const SPLIT_DECADES = 1
+
+/**
+ * Assign each series a y-scale: "y" (left axis) or "y2" (right axis). Tracks are
+ * split at their widest magnitude gap when that gap exceeds SPLIT_DECADES, with the
+ * smaller-magnitude tracks moving to "y2"; otherwise every track stays on "y".
+ * Flat-zero tracks have no magnitude, so they stay on the primary axis.
+ */
+function scaleKeys(): ("y" | "y2")[] {
+  const tracks = props.data.slice(1) as (number | null)[][]
+  const mags = tracks.map(magnitude)
+  const known = mags.filter((m): m is number => m !== null).sort((a, b) => a - b)
+  if (known.length < 2) return tracks.map(() => "y")
+  // The widest gap between adjacent magnitudes is the natural cut between "big" and
+  // "small" tracks; its midpoint is the threshold each track is measured against.
+  let gap = 0
+  let cut = 0
+  for (let i = 1; i < known.length; i++) {
+    if (known[i] - known[i - 1] > gap) {
+      gap = known[i] - known[i - 1]
+      cut = (known[i] + known[i - 1]) / 2
+    }
+  }
+  if (gap < SPLIT_DECADES) return tracks.map(() => "y")
+  return mags.map((m) => (m !== null && m < cut ? "y2" : "y"))
+}
+
 function trackSig(): string {
-  return props.series.map((s) => `${s.label}|${s.stroke}`).join(",")
+  const scales = scaleKeys()
+  return props.series.map((s, i) => `${s.label}|${s.stroke}|${scales[i]}`).join(",")
 }
 
 function options(width: number): uPlot.Options {
@@ -92,6 +138,8 @@ function options(width: number): uPlot.Options {
     ticks: { stroke: themeColor("--color-base-300", "#e5e7eb"), width: 1 },
     font: `11px ${family}`,
   }
+  const scales = scaleKeys()
+  const split = scales.includes("y2")
   return {
     width,
     height: props.height,
@@ -101,10 +149,13 @@ function options(width: number): uPlot.Options {
     cursor: { y: false, drag: { x: false, y: false } },
     scales: { x: { time: false } },
     series: [
-      {},
+      // x is simulation time, so the live legend's first column reads "Time"
+      // rather than uPlot's default "Value".
+      { label: "Time" },
       ...props.series.map(
-        (s): uPlot.Series => ({
+        (s, i): uPlot.Series => ({
           label: s.label,
+          scale: scales[i],
           stroke: s.stroke,
           width: 2,
           points: { show: false },
@@ -112,7 +163,15 @@ function options(width: number): uPlot.Options {
         }),
       ),
     ],
-    axes: [axis, { ...axis, size: 52 }],
+    // When tracks span orders of magnitude the small ones move to a right-hand
+    // axis ("y2"); its grid is suppressed so the two grids don't clash.
+    axes: split
+      ? [
+          axis,
+          { ...axis, size: 52 },
+          { ...axis, scale: "y2", side: 1, size: 52, grid: { show: false } },
+        ]
+      : [axis, { ...axis, size: 52 }],
   }
 }
 
@@ -175,5 +234,13 @@ watch(() => props.marker, syncMarker)
 }
 :deep(.u-legend .u-value) {
   font-variant-numeric: tabular-nums;
+}
+/* Each track row toggles its line on click (⌘/Ctrl-click isolates it); the first
+   row is the Time readout and has no such handler. */
+:deep(.u-legend .u-series) {
+  cursor: pointer;
+}
+:deep(.u-legend .u-series:first-child) {
+  cursor: default;
 }
 </style>
