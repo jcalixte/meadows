@@ -207,7 +207,7 @@ const RULE_HINT: Record<Rule["kind"], string> = {
     <label class="mt-2 block">
       <span class="text-xs text-base-content/60">Description</span>
       <textarea
-        rows="3"
+        rows="6"
         class="textarea textarea-bordered textarea-sm mt-1 w-full leading-snug"
         :value="(element ?? link)?.description ?? ''"
         placeholder="Why this element is here…"
