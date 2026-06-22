@@ -64,9 +64,20 @@
  *                                 threshold the smooth rules can't draw — so here the
  *                                 ceiling is *declared*, not emergent.
  *
+ * Then one last trap, held back until the overflow rule existed to carry it — the
+ * language pointed at the most-told cautionary tale in systems thinking:
+ *
+ *  16. The cobra effect         — a bounty on dead cobras (a Balancing fix) quietly funds a
+ *                                 cobra *farm* (a Reinforcing engine); breeding outruns what
+ *                                 the bounty can absorb, the farm gluts, and its now-worthless
+ *                                 surplus spills through an `overflow` gate into the wild —
+ *                                 leaving four times the snakes there were to begin with. The
+ *                                 perverse incentive: rewarding the proxy (dead cobras) over
+ *                                 the goal (fewer cobras), and the overflow rule's dark payoff.
+ *
  * And the capstone — every piece at once, at the scale the whole gallery points toward:
  *
- *  16. World on a warming planet — the Club of Rome's World3 (Meadows et al., *The Limits
+ *  17. World on a warming planet — the Club of Rome's World3 (Meadows et al., *The Limits
  *                                 to Growth*) in miniature, its pollution sector reframed
  *                                 as a climate channel: four coupled Stocks where two
  *                                 Reinforcing engines (capital, population) overshoot a
@@ -1441,6 +1452,165 @@ function bathtubOverflow(): Model {
 }
 
 /**
+ * The cobra effect — the perverse-incentive trap, and Meadows' "rule beating"
+ * (Thinking in Systems, ch. 5) in its most-told form. Colonial Delhi has too many
+ * cobras, so the British put a bounty on them: cash for every dead snake. The intent
+ * is a Balancing fix — more cobras → more killed for the reward → fewer cobras (Wild
+ * cobras → [+] → culling, an outflow draining the Stock). And at first it works: the
+ * streets empty of snakes.
+ *
+ * But the bounty pays for *dead cobras delivered*, not for *fewer wild cobras* — it
+ * rewards the proxy, not the goal. So the same reward funds a second thing the policy
+ * never intended: people breed cobras to cash in. That farm is a Reinforcing engine
+ * (Farmed cobras → [+] → breeding → Farmed cobras: more breeding stock, more bred), and
+ * the snakes raised on it are killed and turned in for the bounty too (Farmed cobras →
+ * [+] → harvest — the rule beating: producing dead cobras to the letter of the policy
+ * while making its goal worse). One lever, the bounty, wired into all three flows.
+ *
+ * The engine has no scripted policy reversal — no "the bounty is cancelled at year X" —
+ * so the famous release is *emergent*. Breeding (Reinforcing) outruns what the bounty
+ * can absorb; the farm gluts, and a glutted farm crashes the cobra's worth. Past that
+ * glut threshold the now-worthless surplus is dumped into the wild: releases =
+ * max(0, factor × (Farmed cobras − glut)), the `overflow` rule from "Bathtub with an
+ * overflow", here a one-sided gate shut until the farm overflows. Wild cobras have *no
+ * inflow of their own* (no natural breeding is modelled), so the only thing that can
+ * refill the wild is the farm — which leaves no doubt what brings the snakes roaring back.
+ *
+ * The shape (start 0, stop 70, dt 1): Wild cobras crash 100 → ~3 by t≈20 — the bounty
+ * looks like a triumph — while the unseen farm booms 5 → past the glut (200). Then the
+ * overflow opens, the wild population climbs back above its start by t≈24 and overshoots
+ * to ~404 — four times where it began — settling there for good as the farm levels at
+ * ~308. The fix didn't fail quietly; it left the System far worse than it found it. Kin
+ * to "Fixes that fail" (a fix whose own side effect defeats it), but here the side effect
+ * is a Stock the reward built, the brake is the overflow gate, and the damage is permanent.
+ */
+function cobraEffect(): Model {
+  // The policy lever (bounty) sits up top, centre, wired into three flows at once: the
+  // intended cull of Wild cobras on the left, and on the right the farm's breeding and
+  // cash-out. The release bridge dips below, carrying the farm's glut back across to the
+  // wild, with glut hanging beneath it. Valves are hand-placed, not at midpoints, so
+  // every Information Link lands in open space.
+  const bounty = makeConverter({ x: 0, y: -300 }, "bounty")
+  bounty.rule = { kind: "constant", value: 1 }
+  bounty.description =
+    "The reward paid per dead cobra — held at 1, a normalised policy lever, so every rate here scales with it (a bigger bounty would only run the whole story faster). One lever wired into three flows: the cull, the breeding, and the cash-out."
+
+  // The intended fix: a bounty-driven cull empties the streets of wild cobras.
+  const wild = makeStock({ x: -360, y: -40 }, "Wild cobras")
+  wild.initialValue = 100
+  wild.description =
+    "The actual problem the bounty targets — hunted down at first, then overrun once the farm's surplus is loosed on it. It has no inflow of its own, so any rebound can only be the farm's doing."
+  const cullSink = makeCloud({ x: -680, y: -40 })
+  const culling = makeFlow({ x: -520, y: -40 }, "culling", wild.id, cullSink.id)
+  // culling = 0.16 × Wild × bounty: the Balancing drain, ∝ the stock. Fast enough to
+  // crash the wild population by t≈20 — the policy's whole visible success.
+  culling.rule = { kind: "proportional", factor: 0.16 }
+  culling.description =
+    "Wild cobras killed for the bounty, ∝ Wild cobras × bounty — the intended Balancing fix that empties the streets at first."
+
+  // The perverse stock: a farm bred to cash in on the bounty.
+  const farm = makeStock({ x: 360, y: -40 }, "Farmed cobras")
+  farm.initialValue = 5
+  farm.description =
+    "Cobras bred to cash in on the bounty — the Stock the reward calls into being. It compounds unseen while the streets look clear, then spills its surplus into the wild."
+  const breedSrc = makeCloud({ x: 680, y: -40 })
+  const breeding = makeFlow({ x: 520, y: -40 }, "breeding", breedSrc.id, farm.id)
+  // breeding = 0.31 × Farm × bounty: Farm → breeding → Farm, no `−` → the Reinforcing
+  // engine the bounty funds without meaning to.
+  breeding.rule = { kind: "proportional", factor: 0.31 }
+  breeding.description =
+    "The farm breeding more cobras, ∝ Farmed cobras × bounty — the Reinforcing engine the bounty funds without intending to: more breeding stock, more bred."
+  const harvestSink = makeCloud({ x: 360, y: -260 })
+  const harvest = makeFlow({ x: 360, y: -140 }, "harvest", farm.id, harvestSink.id)
+  // harvest = 0.10 × Farm × bounty: farmed cobras killed and turned in — the rule beating,
+  // and a Balancing drain on the farm.
+  harvest.rule = { kind: "proportional", factor: 0.1 }
+  harvest.description =
+    "Farmed cobras killed and turned in for the bounty, ∝ Farmed cobras × bounty — the rule beating: dead cobras to the letter of the policy, while its goal slips away."
+
+  // The backfire bridge: once the farm gluts, its worthless surplus is dumped into the
+  // wild. A one-sided overflow gate (shut below the glut) — no scripted policy reversal
+  // needed; the release falls out of the farm outgrowing its own worth.
+  const glut = makeConverter({ x: 0, y: 300 }, "glut")
+  glut.rule = { kind: "constant", value: 200 }
+  glut.description =
+    "The farm size past which cobras lose their worth (a fixed 200) — the threshold the spill opens above. A structural stand-in for the day the bounty was scrapped and the snakes became worthless."
+  const releases = makeFlow({ x: 0, y: 120 }, "releases", farm.id, wild.id)
+  // releases = max(0, 0.6 × (Farm − glut)): shut while the farm is worth keeping, then it
+  // carries off the surplus. The overflow that overruns the wild — and, draining the farm
+  // above the glut, the Balancing brake that caps it.
+  releases.rule = { kind: "overflow", factor: 0.6 }
+  releases.description =
+    "The farm's glut spilling into the wild, max(0, 60% of the excess above the glut each step): nothing while the farm stays under it, then the worthless surplus is dumped — the overflow that overruns the wild, and the Balancing drain that caps the farm."
+  return model(
+    "The cobra effect",
+    [
+      bounty,
+      wild,
+      cullSink,
+      culling,
+      farm,
+      breedSrc,
+      breeding,
+      harvestSink,
+      harvest,
+      glut,
+      releases,
+    ],
+    [
+      link(
+        wild,
+        culling,
+        "+",
+        "More wild cobras → more killed for the bounty: the + that makes the cull a Balancing fix.",
+      ),
+      link(
+        bounty,
+        culling,
+        "+",
+        "A bigger bounty → harder hunting: the policy driving its intended effect.",
+      ),
+      link(
+        farm,
+        breeding,
+        "+",
+        "More farmed cobras → more breeding stock → more bred: the Reinforcing engine.",
+      ),
+      link(
+        bounty,
+        breeding,
+        "+",
+        "A bigger bounty → more worth breeding for: the reward funding the farm it never intended.",
+      ),
+      link(farm, harvest, "+", "More farmed cobras → more turned in for cash."),
+      link(
+        bounty,
+        harvest,
+        "+",
+        "A bigger bounty → more worth cashing in: the reward the rule beating chases.",
+      ),
+      link(
+        farm,
+        releases,
+        "+",
+        "Farmed cobras is the level in the overflow rule: only the surplus past the glut spills. With the outflow, this closes the Balancing loop that caps the farm.",
+      ),
+      link(
+        glut,
+        releases,
+        "-",
+        "The glut is the threshold the spill opens above (the − input): below it the farm is worth keeping, and nothing is released.",
+      ),
+    ],
+    // The bounty crashes Wild cobras 100 → ~3 by t≈20 (it looks like a triumph) while the
+    // unseen farm booms 5 → past the glut (200). Then the overflow opens: the wild climbs
+    // back above its start by t≈24 and overshoots to ~404 — four times where it began —
+    // settling there as the farm levels at ~308. The fix left the System far worse, for good.
+    { start: 0, stop: 70, dt: 1 },
+  )
+}
+
+/**
  * World on a warming planet — the gallery's capstone: the Club of Rome's World3
  * (Donella Meadows et al., *The Limits to Growth*, 1972) in miniature, with its
  * persistent-pollution sector reframed as the climate channel. It is a *qualitative
@@ -1763,6 +1933,12 @@ export const SAMPLES: Sample[] = [
     blurb:
       "A flat-out tap and a spillway: the excess spills to a second Stock and the level holds.",
     build: bathtubOverflow,
+  },
+  {
+    title: "The cobra effect",
+    blurb:
+      "A bounty on dead cobras breeds a cobra farm; its glut spills into the wild, leaving four times the snakes: a perverse incentive.",
+    build: cobraEffect,
   },
   {
     title: "World on a warming planet",
