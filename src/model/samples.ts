@@ -108,10 +108,31 @@ import {
   type SimSpec,
 } from "./types"
 
-/** A loadable example: a title and one-line blurb for the menu, plus a builder. */
+/**
+ * The pedagogical tier a sample belongs to. Tiers run simplest-first and double as
+ * the section order in the sample browser (see SAMPLE_CATEGORIES).
+ */
+export type SampleCategory =
+  | "Primer"
+  | "Classics"
+  | "System traps"
+  | "Dynamic edge"
+  | "Mechanics & capstone"
+
+/** The categories in display order, simplest tier first. */
+export const SAMPLE_CATEGORIES: SampleCategory[] = [
+  "Primer",
+  "Classics",
+  "System traps",
+  "Dynamic edge",
+  "Mechanics & capstone",
+]
+
+/** A loadable example: a title, one-line blurb and tier for the browser, plus a builder. */
 export interface Sample {
   title: string
   blurb: string
+  category: SampleCategory
   build: () => Model
 }
 
@@ -1942,94 +1963,116 @@ function worldOnAWarmingPlanet(): Model {
 
 /** The gallery, ordered simplest first. */
 export const SAMPLES: Sample[] = [
-  { title: "Bathtub", blurb: "A stock filled and drained — no feedback yet.", build: bathtub },
+  {
+    title: "Bathtub",
+    blurb: "A stock filled and drained — no feedback yet.",
+    category: "Primer",
+    build: bathtub,
+  },
   {
     title: "Savings account",
     blurb: "Interest on a balance: a Reinforcing loop.",
+    category: "Primer",
     build: savings,
   },
   {
     title: "Coffee cooling",
     blurb: "Settling toward room temperature: a Balancing loop.",
+    category: "Primer",
     build: coffee,
   },
   {
     title: "Population",
     blurb: "Births and deaths: Reinforcing and Balancing together.",
+    category: "Primer",
     build: population,
   },
   {
     title: "Limits to growth",
     blurb: "Growth into a ceiling: a Reinforcing and a Balancing loop on one Flow.",
+    category: "Classics",
     build: limitsToGrowth,
   },
   {
     title: "Predator and prey",
     blurb: "Two coupled Stocks whose loops make them oscillate.",
+    category: "Classics",
     build: predatorPrey,
   },
   {
     title: "Epidemic",
     blurb: "Susceptible → Infected → Recovered: a chain of Stocks, no clouds.",
+    category: "Classics",
     build: epidemic,
   },
   {
     title: "Tragedy of the commons",
     blurb: "Two Reinforcing herds overgraze a renewable Stock, then starve with it: a system trap.",
+    category: "System traps",
     build: tragedyOfTheCommons,
   },
   {
     title: "Tragedy of the commons, fixed",
     blurb: "Regulate the same renewable commons with a reserve: it holds, and the herds last.",
+    category: "System traps",
     build: tragedyOfTheCommonsFixed,
   },
   {
     title: "Escalation",
     blurb: "An arms race: one Reinforcing loop spanning two Stocks.",
+    category: "System traps",
     build: escalation,
   },
   {
     title: "Success to the successful",
     blurb:
       "Two equal researchers, one a hair ahead: the field's attention locks onto the leader and the rival fades — a winner-take-all trap.",
+    category: "System traps",
     build: successToTheSuccessful,
   },
   {
     title: "Fixes that fail",
     blurb: "Road building eases congestion (B) but induces the traffic that refills it (R).",
+    category: "System traps",
     build: fixesThatFail,
   },
   {
     title: "Drift to low performance",
     blurb: "An eroding goal leaves steady decay no floor: both slide downhill.",
+    category: "System traps",
     build: driftToLowPerformance,
   },
   {
     title: "Overshoot and collapse",
     blurb: "A fleet overfishes past the point of no return: the stock collapses for good.",
+    category: "Dynamic edge",
     build: overshootAndCollapse,
   },
   {
     title: "AI deskilling spiral",
     blurb: "Leaning on AI to hold quality erodes the expertise that holds it: shifting the burden.",
+    category: "Dynamic edge",
     build: aiDeskillingSpiral,
   },
   {
     title: "Bathtub with an overflow",
     blurb:
       "A flat-out tap and a spillway: the excess spills to a second Stock and the level holds.",
+    category: "Mechanics & capstone",
     build: bathtubOverflow,
   },
   {
     title: "The cobra effect",
     blurb:
       "A bounty on dead cobras breeds a cobra farm; its glut spills into the wild, leaving four times the snakes: a perverse incentive.",
+    category: "Mechanics & capstone",
     build: cobraEffect,
   },
   {
     title: "World on a warming planet",
     blurb:
       "The Club of Rome's World3 in miniature, with a climate channel: growth overshoots a finite planet and the carbon it burns locks in the heat that finishes it.",
+    category: "Mechanics & capstone",
     build: worldOnAWarmingPlanet,
   },
 ]
