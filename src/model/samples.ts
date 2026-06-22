@@ -21,27 +21,31 @@
  *   6. Predator and prey — two coupled Stocks whose interlocking loops oscillate.
  *   7. Epidemic          — a chain of Stocks joined by Stock→Stock Flows: no clouds.
  *
- * Last, four of Donella Meadows' system *traps* — structures that reliably misbehave
+ * Last, five of Donella Meadows' system *traps* — structures that reliably misbehave
  * (Thinking in Systems, ch. 5), to contrast the healthy dynamics above — and, paired
  * with the first, the cure that escapes it:
  *
- *   8. Tragedy of the commons   — two Reinforcing herds overgraze a *renewable* shared
- *                                 Stock to bare dirt, then starve with it: all ruined.
- *   9. …commons, fixed          — the same renewable commons, but stocking is regulated
- *                                 against an agreed reserve: it holds, and the herds end
- *                                 *larger* than the trap's boom leaves alive.
- *  10. Escalation               — a single Reinforcing loop spanning two Stocks, with
- *                                 no brake in the structure: an arms race.
- *  11. Fixes that fail          — a fix drains the symptom Stock (B) while its side
- *                                 effect refills it (R): the cure feeds the disease.
- *  12. Drift to low performance — a goal that erodes toward actual performance, so the
- *                                 effort it drives never overcomes a steady decay: a
- *                                 Reinforcing loop ratchets both downward.
+ *   8. Tragedy of the commons    — two Reinforcing herds overgraze a *renewable* shared
+ *                                  Stock to bare dirt, then starve with it: all ruined.
+ *   9. …commons, fixed           — the same renewable commons, but stocking is regulated
+ *                                  against an agreed reserve: it holds, and the herds end
+ *                                  *larger* than the trap's boom leaves alive.
+ *  10. Escalation                — a single Reinforcing loop spanning two Stocks, with
+ *                                  no brake in the structure: an arms race.
+ *  11. Success to the successful — two equal rivals split one conserved prize (the field's
+ *                                  attention); a gap-driven Flow tilts it to whoever leads,
+ *                                  so a 51–49 near-tie locks in to ~100–0. Escalation's
+ *                                  zero-sum twin — it concentrates instead of exploding.
+ *  12. Fixes that fail           — a fix drains the symptom Stock (B) while its side
+ *                                  effect refills it (R): the cure feeds the disease.
+ *  13. Drift to low performance  — a goal that erodes toward actual performance, so the
+ *                                  effort it drives never overcomes a steady decay: a
+ *                                  Reinforcing loop ratchets both downward.
  *
  * Next, the dynamic the book is named for, and the one the gallery has saved until a
  * reader knows every piece it needs:
  *
- *  13. Overshoot and collapse   — a Reinforcing harvester on a *renewable* Resource with
+ *  14. Overshoot and collapse   — a Reinforcing harvester on a *renewable* Resource with
  *                                 an extinction threshold (an Allee floor): a fleet
  *                                 overshoots the renewal rate and pushes the fishery past
  *                                 the point of no return. The dark twin of "Limits to
@@ -50,14 +54,14 @@
  * Last, the language pointed at a live debate — a classic trap (Shifting the burden to
  * the intervenor, ch. 5) wearing today's clothes:
  *
- *  14. AI deskilling spiral     — handing the burden of code quality to AI atrophies the
+ *  15. AI deskilling spiral     — handing the burden of code quality to AI atrophies the
  *                                 Expertise that holds quality up, so the team leans on AI
  *                                 harder and Technical debt spirals: addiction, not a fix.
  *
  * And a mechanical coda — the gallery's one *hard* ceiling, to contrast the emergent
  * ones (above all "Limits to growth"):
  *
- *  15. Bathtub with an overflow — the tap runs flat out (a Constant inflow that never
+ *  16. Bathtub with an overflow — the tap runs flat out (a Constant inflow that never
  *                                 reads the level) and a spillway carries whatever rises
  *                                 past the brim into a second Stock, the floor. The only
  *                                 model on the `overflow` rule — a one-sided Gap, the
@@ -67,7 +71,7 @@
  * Then one last trap, held back until the overflow rule existed to carry it — the
  * language pointed at the most-told cautionary tale in systems thinking:
  *
- *  16. The cobra effect         — a bounty on dead cobras (a Balancing fix) quietly funds a
+ *  17. The cobra effect         — a bounty on dead cobras (a Balancing fix) quietly funds a
  *                                 cobra *farm* (a Reinforcing engine); breeding outruns what
  *                                 the bounty can absorb, the farm gluts, and its now-worthless
  *                                 surplus spills through an `overflow` gate into the wild —
@@ -77,7 +81,7 @@
  *
  * And the capstone — every piece at once, at the scale the whole gallery points toward:
  *
- *  17. World on a warming planet — the Club of Rome's World3 (Meadows et al., *The Limits
+ *  18. World on a warming planet — the Club of Rome's World3 (Meadows et al., *The Limits
  *                                 to Growth*) in miniature, its pollution sector reframed
  *                                 as a climate channel: four coupled Stocks where two
  *                                 Reinforcing engines (capital, population) overshoot a
@@ -940,6 +944,82 @@ function escalation(): Model {
       ),
     ],
     { start: 0, stop: 40, dt: 1 },
+  )
+}
+
+/**
+ * Success to the successful — Donella Meadows' competitive-exclusion trap (Thinking
+ * in Systems, ch. 5), known in the sociology of science as the *Matthew effect*
+ * (Robert Merton, after Matthew 25:29: "unto every one that hath shall be given").
+ * Two researchers of equal ability compete for one finite thing — the field's
+ * attention — and the only difference between them is that A begins a single point
+ * ahead (Renown 51 vs 49 of a fixed 100).
+ *
+ * The community's attention is a *conserved* budget: a citation, an invitation, a
+ * grant that goes to one does not go to the other, so Renown A + Renown B never
+ * leaves 100. The marginal piece of it drifts to whoever is already better known —
+ * `attention = factor × (Renown A − Renown B)`, a single Stock→Stock Flow draining
+ * the lesser name into the greater. There are no clouds: nothing enters or leaves
+ * the system, it only *redistributes*. That one valve carries *two* Reinforcing
+ * loops — Renown A → [+] → attention → (fills A) → Renown A (more renown wins more
+ * attention), and Renown B → [−] → attention → (drains B) → Renown B (the falling
+ * name is forgotten ever faster). Neither loop has a surviving `−`, so both are
+ * Reinforcing: nothing brakes the gap, and it can only widen.
+ *
+ * A tie is therefore an *unstable* equilibrium — the knife-edge this trap balances
+ * on. A's one-point lead is enough: attention tilts to A, the gap grows, attention
+ * tilts harder, and the field locks in. Renown A climbs 51 → 100 and Renown B fades
+ * 49 → 0 by t≈42 — a near-total monopoly of acclaim, though the two were equally
+ * able. The cruel lesson Meadows draws: where the prize for winning is more power to
+ * win, it is *initial conditions*, not merit, that decide the outcome.
+ *
+ * Contrast "Escalation", the gallery's other two-Stock all-Reinforcing trap: there
+ * the cross-loop has no minus and *both* arsenals blow up together (positive-sum,
+ * unbounded); here the single loop is zero-sum — A rises only as fast as B is drained
+ * — so the same Reinforcing structure *concentrates* instead of exploding. (The cure
+ * Meadows prescribes is to break the coupling — level the field, diversify the prize,
+ * or handicap the leader — none of which the structure here contains: that is the trap.)
+ */
+function successToTheSuccessful(): Model {
+  // Two Stocks on one line, the lone attention valve nudged above their midpoint so
+  // the pipe (Renown B → attention → Renown A) and the two info links (each Stock
+  // into the valve) read apart instead of overlapping. Hand-placed, not at midpoint.
+  const renownB = makeStock({ x: -260, y: 80 }, "Renown B")
+  renownB.initialValue = 49
+  renownB.description =
+    "Researcher B's standing — equal in ability to A, and a single point behind at the start. The lesser name the attention drains away from, fading to nothing though B never did anything wrong."
+  const renownA = makeStock({ x: 260, y: 80 }, "Renown A")
+  renownA.initialValue = 51
+  renownA.description =
+    "Researcher A's standing — one point ahead at the start, and that hair's lead is all it takes. Attention concentrates here until A holds nearly the whole field's acclaim."
+  // attention = factor × (Renown A − Renown B): a Gap whose `+` level is A and `−`
+  // target is B. Source B, target A, so a positive rate drains the lesser name into
+  // the greater — and since draining B only widens the gap, the rate never reverses.
+  const attention = makeFlow({ x: 0, y: -120 }, "attention", renownB.id, renownA.id)
+  attention.rule = { kind: "gap", factor: 0.05 }
+  attention.description =
+    "The field's finite attention drifting to the better-known name, ∝ the lead (Renown A − Renown B). A conserved transfer: what A gains, B loses — the one valve through which both Reinforcing loops run."
+  return model(
+    "Success to the successful",
+    [renownB, renownA, attention],
+    [
+      link(
+        renownA,
+        attention,
+        "+",
+        "Renown A is the level in the gap: the further ahead A is, the faster attention flows its way. With the inflow it fills, this closes A's Reinforcing loop — the rich getting richer.",
+      ),
+      link(
+        renownB,
+        attention,
+        "-",
+        "Renown B is the target the gap is measured against (the − input). As B fades the gap only widens, so it is drained faster still — a second Reinforcing loop, the same minus on both the link and the outflow.",
+      ),
+    ],
+    // From a 51–49 near-tie the gap runs away: Renown A climbs 51 → ~100 and Renown B
+    // fades 49 → ~0 by t≈42, then both hold — a near-total monopoly of acclaim won on a
+    // one-point head start. The unstable 50–50 knife-edge a hair's difference tips.
+    { start: 0, stop: 50, dt: 1 },
   )
 }
 
@@ -1907,6 +1987,12 @@ export const SAMPLES: Sample[] = [
     title: "Escalation",
     blurb: "An arms race: one Reinforcing loop spanning two Stocks.",
     build: escalation,
+  },
+  {
+    title: "Success to the successful",
+    blurb:
+      "Two equal researchers, one a hair ahead: the field's attention locks onto the leader and the rival fades — a winner-take-all trap.",
+    build: successToTheSuccessful,
   },
   {
     title: "Fixes that fail",
