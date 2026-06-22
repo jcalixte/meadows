@@ -1565,23 +1565,23 @@ function bathtubOverflow(): Model {
  * is a Stock the reward built, the brake is the overflow gate, and the damage is permanent.
  */
 function cobraEffect(): Model {
-  // The policy lever (bounty) sits up top, centre, wired into three flows at once: the
-  // intended cull of Wild cobras on the left, and on the right the farm's breeding and
-  // cash-out. The release bridge dips below, carrying the farm's glut back across to the
-  // wild, with glut hanging beneath it. Valves are hand-placed, not at midpoints, so
-  // every Information Link lands in open space.
-  const bounty = makeConverter({ x: 0, y: -300 }, "bounty")
+  // Laid out left→right: the farm engine on the left (a Source breeds Farmed cobras,
+  // harvest draining up to a Sink), the release bridge in the centre spilling the glut
+  // rightward into Wild cobras, and the bounty-driven cull running off to the right. The
+  // policy lever (bounty) sits up top, wired down into all three flows — cull, breeding,
+  // cash-out — with glut beneath the bridge it gates. Hand-placed valves keep links clear.
+  const bounty = makeConverter({ x: -80, y: -340 }, "bounty")
   bounty.rule = { kind: "constant", value: 1 }
   bounty.description =
     "The reward paid per dead cobra — held at 1, a normalised policy lever, so every rate here scales with it (a bigger bounty would only run the whole story faster). One lever wired into three flows: the cull, the breeding, and the cash-out."
 
   // The intended fix: a bounty-driven cull empties the streets of wild cobras.
-  const wild = makeStock({ x: -360, y: -40 }, "Wild cobras")
+  const wild = makeStock({ x: 380, y: -40 }, "Wild cobras")
   wild.initialValue = 100
   wild.description =
     "The actual problem the bounty targets — hunted down at first, then overrun once the farm's surplus is loosed on it. It has no inflow of its own, so any rebound can only be the farm's doing."
-  const cullSink = makeCloud({ x: -680, y: -40 })
-  const culling = makeFlow({ x: -520, y: -40 }, "culling", wild.id, cullSink.id)
+  const cullSink = makeCloud({ x: 920, y: -40 })
+  const culling = makeFlow({ x: 660, y: -40 }, "culling", wild.id, cullSink.id)
   // culling = 0.16 × Wild × bounty: the Balancing drain, ∝ the stock. Fast enough to
   // crash the wild population by t≈20 — the policy's whole visible success.
   culling.rule = { kind: "proportional", factor: 0.16 }
@@ -1589,19 +1589,19 @@ function cobraEffect(): Model {
     "Wild cobras killed for the bounty, ∝ Wild cobras × bounty — the intended Balancing fix that empties the streets at first."
 
   // The perverse stock: a farm bred to cash in on the bounty.
-  const farm = makeStock({ x: 360, y: -40 }, "Farmed cobras")
+  const farm = makeStock({ x: -520, y: -40 }, "Farmed cobras")
   farm.initialValue = 5
   farm.description =
     "Cobras bred to cash in on the bounty — the Stock the reward calls into being. It compounds unseen while the streets look clear, then spills its surplus into the wild."
-  const breedSrc = makeCloud({ x: 680, y: -40 })
-  const breeding = makeFlow({ x: 520, y: -40 }, "breeding", breedSrc.id, farm.id)
+  const breedSrc = makeCloud({ x: -980, y: -200 })
+  const breeding = makeFlow({ x: -760, y: -200 }, "breeding", breedSrc.id, farm.id)
   // breeding = 0.31 × Farm × bounty: Farm → breeding → Farm, no `−` → the Reinforcing
   // engine the bounty funds without meaning to.
   breeding.rule = { kind: "proportional", factor: 0.31 }
   breeding.description =
     "The farm breeding more cobras, ∝ Farmed cobras × bounty — the Reinforcing engine the bounty funds without intending to: more breeding stock, more bred."
-  const harvestSink = makeCloud({ x: 360, y: -260 })
-  const harvest = makeFlow({ x: 360, y: -140 }, "harvest", farm.id, harvestSink.id)
+  const harvestSink = makeCloud({ x: 600, y: -220 })
+  const harvest = makeFlow({ x: 400, y: -220 }, "harvest", farm.id, harvestSink.id)
   // harvest = 0.10 × Farm × bounty: farmed cobras killed and turned in — the rule beating,
   // and a Balancing drain on the farm.
   harvest.rule = { kind: "proportional", factor: 0.1 }
@@ -1611,11 +1611,11 @@ function cobraEffect(): Model {
   // The backfire bridge: once the farm gluts, its worthless surplus is dumped into the
   // wild. A one-sided overflow gate (shut below the glut) — no scripted policy reversal
   // needed; the release falls out of the farm outgrowing its own worth.
-  const glut = makeConverter({ x: 0, y: 300 }, "glut")
+  const glut = makeConverter({ x: -260, y: 260 }, "glut")
   glut.rule = { kind: "constant", value: 200 }
   glut.description =
     "The farm size past which cobras lose their worth (a fixed 200) — the threshold the spill opens above. A structural stand-in for the day the bounty was scrapped and the snakes became worthless."
-  const releases = makeFlow({ x: 0, y: 120 }, "releases", farm.id, wild.id)
+  const releases = makeFlow({ x: -40, y: 60 }, "releases", farm.id, wild.id)
   // releases = max(0, 0.6 × (Farm − glut)): shut while the farm is worth keeping, then it
   // carries off the surplus. The overflow that overruns the wild — and, draining the farm
   // above the glut, the Balancing brake that caps it.
