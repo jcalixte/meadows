@@ -29,7 +29,7 @@ import { useAutosave } from "@/composables/useAutosave"
 import { usePlayback } from "@/composables/usePlayback"
 import { parseModel, serializeModel } from "@/model/io"
 import { project } from "@/model/projection"
-import { type Sample, SAMPLES } from "@/model/samples"
+import type { Sample } from "@/model/samples"
 import { canConnect } from "@/model/validation"
 import { useModelStore } from "@/store/model"
 import { NODE_DND_MIME, type PlaceableKind } from "./palette-dnd"
@@ -38,6 +38,7 @@ import Inspector from "./Inspector.vue"
 import LoopOverlay from "./LoopOverlay.vue"
 import Palette from "./Palette.vue"
 import ResultsPanel from "./ResultsPanel.vue"
+import SampleBrowser from "./SampleBrowser.vue"
 import InfoLinkEdge from "./edges/InfoLinkEdge.vue"
 import PipeEdge from "./edges/PipeEdge.vue"
 import CloudNode from "./nodes/CloudNode.vue"
@@ -54,6 +55,9 @@ const edges = computed(() => graph.value.edges)
 // The simulation results panel (phase 2). Toggled from the header; the panel runs
 // the Model and recomputes reactively while open.
 const showResults = ref(false)
+
+// The sample-browser modal (opened from the header "Samples" button).
+const browserOpen = ref(false)
 
 // The playback clock that advances the playhead while a run is playing (mounted
 // once here; the simulation store holds the state it drives).
@@ -270,12 +274,12 @@ function onDragOver(event: DragEvent): void {
  */
 function loadSample(sample: Sample): void {
   if (store.nodeCount > 0 && !window.confirm(`Replace the current model with “${sample.title}”?`)) {
+    // Cancelled: leave the model untouched and the browser open to pick again.
     return
   }
   fitAfterInit = true
   store.setModel(sample.build())
-  // Close the DaisyUI dropdown (it stays open while the trigger keeps focus).
-  ;(document.activeElement as HTMLElement | null)?.blur()
+  browserOpen.value = false
 }
 
 const fileInput = useTemplateRef<HTMLInputElement>("fileInput")
@@ -397,20 +401,7 @@ onBeforeUnmount(() => {
         {{ store.nodeCount }} {{ store.nodeCount === 1 ? "element" : "elements" }}
       </span>
       <div class="ml-auto flex items-center gap-1">
-        <div class="dropdown dropdown-end">
-          <button tabindex="0" class="btn btn-ghost btn-sm">Samples</button>
-          <ul
-            tabindex="0"
-            class="dropdown-content menu z-40 mt-1 max-h-80 w-72 flex-nowrap gap-1 overflow-y-auto rounded-box border border-base-300 bg-base-100 p-2 shadow-lg"
-          >
-            <li v-for="sample in SAMPLES" :key="sample.title">
-              <button class="flex flex-col items-start gap-0.5" @click="loadSample(sample)">
-                <span class="font-medium">{{ sample.title }}</span>
-                <span class="text-xs text-base-content/60">{{ sample.blurb }}</span>
-              </button>
-            </li>
-          </ul>
-        </div>
+        <button class="btn btn-ghost btn-sm" @click="browserOpen = true">Samples</button>
         <button
           class="btn btn-primary btn-sm"
           :class="{ 'btn-active': showResults }"
@@ -504,5 +495,7 @@ onBeforeUnmount(() => {
          the canvas to the space above, where the diagram re-fits (see the
          `dimensions` watcher in <script>). -->
     <ResultsPanel v-if="showResults" @close="showResults = false" />
+
+    <SampleBrowser v-model:open="browserOpen" @select="loadSample" />
   </div>
 </template>
