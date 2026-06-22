@@ -21,12 +21,12 @@ loops you _run_. They can never disagree.
 typed-in formula.** Each instantaneous element picks one rule and a plain number
 or two — never an expression:
 
-| Rule             | Value                       | Reads (via Information Links)             | Emergent behaviour         |
-| ---------------- | --------------------------- | ----------------------------------------- | -------------------------- |
-| **Constant**     | a fixed number              | nothing                                   | linear Stock change        |
-| **Proportional** | `factor × (its `+` inputs)` | the `+`-polarity inputs                   | exponential growth / decay |
-| **Gap**          | `factor × (level − target)` | the `+` input is _level_, `−` is _target_ | goal-seeking / asymptotic  |
-| **Overflow**     | `max(0, factor × (level − threshold))` | the `+` input is _level_, `−` is _threshold_ | a spillway / hard ceiling |
+| Rule             | Value                                  | Reads (via Information Links)                | Emergent behaviour         |
+| ---------------- | -------------------------------------- | -------------------------------------------- | -------------------------- |
+| **Constant**     | a fixed number                         | nothing                                      | linear Stock change        |
+| **Proportional** | `factor × (its `+` inputs)`            | the `+`-polarity inputs                      | exponential growth / decay |
+| **Gap**          | `factor × (level − target)`            | the `+` input is _level_, `−` is _target_    | goal-seeking / asymptotic  |
+| **Overflow**     | `max(0, factor × (level − threshold))` | the `+` input is _level_, `−` is _threshold_ | a spillway / hard ceiling  |
 
 The famous curves are _compositions_ of these over the structure — a logistic
 S-curve is Proportional growth meeting a Gap-driven ceiling (limits-to-growth);
